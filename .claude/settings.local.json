@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find ~/Downloads ~/Desktop ~/Documents -maxdepth 3 -iname \"*.json\" -newer \"/Users/ranveersembhi/Documents/aii agent/CLAUDE.md\" 2>/dev/null | grep -v node_modules | head -50)",
+      "Read(//Users/ranveersembhi/Downloads/**)",
+      "WebSearch"
+    ]
+  }
+}

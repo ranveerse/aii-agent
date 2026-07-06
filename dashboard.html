@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Value Investing Analysis Viewer</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --panel: #161b22;
+    --panel-2: #1c2229;
+    --border: #2a313c;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --green: #3fb950;
+    --green-bg: rgba(63,185,80,0.12);
+    --red: #f85149;
+    --red-bg: rgba(248,81,73,0.12);
+    --yellow: #d29922;
+    --yellow-bg: rgba(210,153,34,0.12);
+    --blue: #58a6ff;
+    --blue-bg: rgba(88,166,255,0.12);
+    --gray: #8b949e;
+    --gray-bg: rgba(139,148,158,0.12);
+    --purple: #bc8cff;
+    --purple-bg: rgba(188,140,255,0.12);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    padding: 32px 20px 80px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  .subtitle { color: var(--muted); font-size: 13px; margin: 0 0 24px; }
+
+  .input-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 140px;
+    resize: vertical;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .controls { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+  button {
+    background: var(--blue-bg);
+    color: var(--blue);
+    border: 1px solid rgba(88,166,255,0.35);
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.15); }
+  button.secondary { background: var(--panel-2); color: var(--muted); border-color: var(--border); }
+  input[type=file] { display: none; }
+  .file-label {
+    background: var(--panel-2); color: var(--muted); border: 1px solid var(--border);
+    border-radius: 6px; padding: 7px 14px; font-size: 13px; cursor: pointer;
+  }
+  .file-label:hover { filter: brightness(1.15); }
+  .error {
+    color: var(--red); font-size: 12.5px; margin-top: 8px; display: none;
+  }
+
+  #report { display: none; }
+
+  .header-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .ticker-block .ticker { font-size: 26px; font-weight: 700; letter-spacing: 0.5px; }
+  .ticker-block .price { color: var(--muted); font-size: 14px; margin-top: 2px; }
+  .grade-badge {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .card .label {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 8px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .value-plain { font-size: 15px; font-weight: 600; }
+
+  .mos-bar-track {
+    background: var(--panel-2);
+    border-radius: 6px;
+    height: 8px;
+    width: 100%;
+    margin-top: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .mos-bar-fill { height: 100%; border-radius: 6px; }
+
+  .text-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+  }
+  .text-card .label {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 8px;
+  }
+  .text-card p { margin: 0; font-size: 14px; line-height: 1.55; }
+
+  .rationale {
+    background: linear-gradient(180deg, rgba(88,166,255,0.06), transparent);
+    border: 1px solid rgba(88,166,255,0.25);
+  }
+
+  .section-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    margin: 24px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title:first-of-type { margin-top: 0; }
+
+  .composite-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .composite-chip .num { font-size: 16px; font-weight: 700; color: var(--text); }
+
+  .tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
+  .tag.flag { background: var(--red-bg); color: var(--red); }
+  .tag.gap { background: var(--gray-bg); color: var(--gray); }
+  .tag.none { background: var(--panel-2); color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Value Investing Analysis Viewer</h1>
+  <p class="subtitle">Paste or upload the analysis JSON output to render a formatted report.</p>
+
+  <div class="input-panel">
+    <textarea id="jsonInput" placeholder='Paste the raw JSON output here, e.g. { "ticker": "PYPL", "current_price": 65.20, ... }'></textarea>
+    <div class="controls">
+      <button id="renderBtn">Render Report</button>
+      <label class="file-label" for="fileInput">Upload JSON File</label>
+      <input type="file" id="fileInput" accept="application/json,.json">
+      <button class="secondary" id="sampleBtn">Load Sample</button>
+      <button class="secondary" id="clearBtn">Clear</button>
+    </div>
+    <div class="error" id="errorMsg"></div>
+  </div>
+
+  <div id="report"></div>
+</div>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+const jsonInput = $('#jsonInput');
+const errorMsg = $('#errorMsg');
+const report = $('#report');
+
+// AUTO_DATA is overwritten in place by the analyst agent after each run.
+// When non-null, the report renders immediately on page load with no manual paste/upload needed.
+const AUTO_DATA = {
+  "ticker": "M",
+  "current_price": 23.23,
+  "traditional_multiples": "P/E (TTM, ~$0.667B NI / ~270M sh) ≈9.4-9.6x; EV/EBITDA (TTM adj. EBITDA ~$1.83B; EV ~$10.4B incl. leases) ≈5.7x; P/B ≈1.35x; Dividend yield ≈3.19%; Diluted EPS FY2025 $2.32, FY2024 $2.07, FY2023 $0.16. All aggregate $ figures below are in $ millions unless noted per-share.",
+  "corporate_lifecycle_stage": "Declining/Legacy (multi-year self-help turnaround in progress)",
+  "owner_earnings": 631.00,
+  "maintenance_capex_estimate": 740.00,
+  "sbc_dilution_flag": "Normal",
+  "earnings_quality_flag": "High",
+  "accrual_ratio": -0.0091,
+  "roic": 0.0842,
+  "roiic_3yr": "N/A – insufficient data (need FY2022 NOPAT / FY2021 invested capital; only FY2023-FY2025 disclosed)",
+  "wacc": "N/A – insufficient data (no cost-of-equity/beta/risk-free-rate inputs provided)",
+  "economic_profit_spread": "N/A – insufficient data (WACC unavailable)",
+  "capital_verdict": "N/A – insufficient data (WACC unavailable). Qualitatively: ROIC ~8.4% (lease-inclusive invested capital) to ~12.9% (excl. operating leases) sits at or near typical retail cost of capital, implying at best a thin ROIC-WACC spread.",
+  "denominator_trap_risk": "Medium",
+  "share_cannibal_status": "Cannibal",
+  "per_share_growth_quality": "Positive — Owner Earnings/share rose from ~$1.20 (FY2024) to ~$2.28 (FY2025), aided by both operating cash-flow improvement and net share-count reduction (17.7M shares repurchased in FY2025), not dilution.",
+  "epv_per_share": "N/A – insufficient data (requires WACC)",
+  "reproduction_value_per_share": 13.73,
+  "epv_to_rv_ratio": "N/A – insufficient data",
+  "franchise_verdict": "N/A – insufficient data (EPV requires WACC); qualitatively Efficient-Competitor-to-Weak-Moat given ROIC sits near estimated cost of capital",
+  "reverse_dcf_implied_growth": "N/A – insufficient data (requires WACC)",
+  "intrinsic_value_per_share": "N/A – insufficient data (EPV/DCF require WACC; reproduction value requires real-estate appraisal data not provided)",
+  "adjusted_margin_of_safety_percentage": "N/A – insufficient data",
+  "piotroski_f_score": 7,
+  "altman_z_score": 6.40,
+  "beneish_m_score": -1.68,
+  "insider_alignment_evaluation": "Weak/passive. No open-market insider purchases evidenced in filings. Form 4 (06/2026) shows director Richard L. Markee accruing 1,322 phantom stock units — a non-cash deferred-comp mechanism settled only upon board departure, not a cash purchase. Form 144 (06/2026) shows CFO Thomas Edwards selling 36,419 shares (~$872K) sourced from restricted-stock vesting — a routine, likely tax-related sale, not an open-market conviction buy. Exec comp under 2023-2025 PRSU cycles is tied to relative TSR and Adjusted EBITDA margin (reasonably shareholder-aligned) rather than ROIC or FCF/share; the 2026-2028 PRSU metrics were redacted in the filed exhibit and could not be verified.",
+  "buyback_quality": "Value-Accretive (qualitative)",
+  "dividend_coverage": "FY2025 dividends paid $197M / Owner Earnings ~$631M ≈ 31% payout — comfortably within the ~60-70% sustainable band; funded by operating cash flow, not debt or dilution.",
+  "intangible_moat_strength": "Weak",
+  "credible_catalyst_identified": "Soft/ongoing, not a discrete named event: the 'Bold New Chapter' self-help turnaround (launched Feb 2024, now in its 3rd year) is showing accelerating results — Q1 FY2026 comparable sales +3.0% (best in 4 years), Bloomingdale's O+L+M comps +8.8% to +10.2% in recent quarters, continued underperforming-store closures, and real-estate monetization gains ($44-48M/yr). No activist investor, spinoff, or M&A event was identified in the filings reviewed.",
+  "composite_score": 42,
+  "red_flags": [
+    "Beneish M-Score of -1.68 exceeds the -1.78 manipulation threshold, triggering the deterministic override — but this is driven almost entirely by a DSRI spike from a disclosed one-time $328M interchange-fee litigation settlement sitting in receivables (not yet cash-collected as of 1/31/26), not evidence of earnings manipulation.",
+    "Margin of safety cannot be computed at all (no WACC/cost-of-equity inputs), which independently caps the achievable grade at FAIR VALUE per the Data Input Mode rules; combined with the Beneish trigger above, the more restrictive override governs the final grade.",
+    "ROIC (~8.4% lease-adjusted) is likely close to or below Macy's true cost of capital, consistent with a weak/no economic moat despite a respectable F-Score and safe Altman Z''.",
+    "No evidence of open-market insider buying; the only on-file insider activity is a CFO sale (vesting-related) and a director's non-cash phantom-stock accrual.",
+    "Classic (manufacturer-variant) Altman Z-score = 2.63 sits in the 'Grey Zone' (1.81-2.99) using market-value equity, versus the safer Z''=6.40 under the service-sector variant used as the primary figure — worth monitoring given still-elevated leverage (Ba1/BB+/BBB- ratings, all stable)."
+  ],
+  "data_gaps": [
+    "WACC / cost of equity inputs (risk-free rate, beta, equity risk premium) — not provided; EPV, two-stage DCF, reverse-DCF, and Economic Profit spread cannot be computed.",
+    "5-10 year Gross PP&E and Sales history for a full Greenwald maintenance/growth capex split — only FY2024 and FY2025 Gross PP&E were disclosed; growth capex approximated as ~$0 given declining topline (floored, not computed from a full 5yr average).",
+    "ROIIC (3-yr) requires FY2022 NOPAT and FY2021 invested capital — not available (only FY2023-FY2025 figures were in the provided 10-K).",
+    "Real estate fair-value/appraisal data — Macy's owns 243 of 665 store locations at historical cost; reproduction value and any 'hidden real estate value' thesis cannot be quantified without independent appraisals.",
+    "Full DEF 14A / Proxy Statement — only a redacted 10-Q exhibit (2026-2028 PRSU terms with metric names blacked out as '[Metric 1/2/3]') was available; current-year executive comp metrics/weights, insider ownership guidelines, and say-on-pay results are unknown.",
+    "Cash tax rate detail — NOPAT used the effective book tax rate (24.4%); actual net cash taxes paid were markedly lower (~$70M on $849M pretax income, ~8.2%), which would raise computed ROIC to ~10.2% if used instead."
+  ],
+  "investment_grade": "DEAD MONEY",
+  "forward_looking_rationale": "Macy's enters fiscal 2026 with its 'Bold New Chapter' turnaround showing real traction — Q1 FY2026 comparable sales rose 3.0% (best in four years) and Bloomingdale's luxury comps are up high-single-to-double digits — while management keeps returning capital via buybacks executed at prices ($13-19/share across FY2025-Q1 FY2026) well below today's $23.23 quote. The case for owning the stock hinges on whether this comp-sales and margin momentum can sustain a ROIC that is only marginally above (or possibly below) Macy's true cost of capital, a question this analysis cannot resolve without WACC inputs, real-estate appraisals, and a complete, unredacted proxy statement. Absent open-market insider buying, a hard third-party catalyst (activist, spinoff, or M&A), and a fully computable margin of safety — and with a technically triggered but well-explained Beneish flag — the name is graded DEAD MONEY: statistically cheap and executing a credible self-help plan, but without the alignment or valuation evidence needed to call it a genuine value opportunity today."
+};
+
+const SAMPLE = {
+  ticker: "PYPL",
+  current_price: 65.20,
+  traditional_multiples: "P/E 14.2x | EV/EBITDA 8.9x | P/FCF 10.1x",
+  corporate_lifecycle_stage: "Mature Compounder",
+  owner_earnings: 4820000000,
+  maintenance_capex_estimate: 610000000,
+  sbc_dilution_flag: "Normal",
+  earnings_quality_flag: "High",
+  accrual_ratio: -0.03,
+  roic: 14.8,
+  roiic_3yr: 11.2,
+  wacc: 9.1,
+  economic_profit_spread: 5.7,
+  capital_verdict: "Value Creator",
+  denominator_trap_risk: "Low",
+  share_cannibal_status: "Cannibal",
+  per_share_growth_quality: "Owner earnings per share and FCF per share both rising after dilution; buybacks are outrunning share issuance from equity comp.",
+  epv_per_share: 58.40,
+  reproduction_value_per_share: 44.10,
+  epv_to_rv_ratio: 1.32,
+  franchise_verdict: "Franchise",
+  reverse_dcf_implied_growth: 2.1,
+  intrinsic_value_per_share: 96.60,
+  adjusted_margin_of_safety_percentage: 32.5,
+  piotroski_f_score: 7,
+  altman_z_score: 3.4,
+  beneish_m_score: -2.35,
+  insider_alignment_evaluation: "New CEO has purchased shares via open-market buys; equity comp increasingly tied to FCF/share targets rather than raw revenue growth.",
+  buyback_quality: "Value-Accretive",
+  dividend_coverage: "No dividend; FCF fully directed to buybacks and reinvestment.",
+  intangible_moat_strength: "Moderate",
+  credible_catalyst_identified: "New turnaround CEO restructuring capital allocation priorities toward buybacks and margin expansion; activist pressure from Elliott Management.",
+  composite_score: 74,
+  red_flags: [],
+  data_gaps: ["Segment-level ROIIC breakdown unavailable"],
+  investment_grade: "CATALYST-DRIVEN VALUE",
+  forward_looking_rationale: "PayPal's aggressive buyback program is shrinking the share count faster than earnings are declining, structurally boosting per-share value. The new CEO's shift toward branded checkout and margin discipline is a credible catalyst absent under prior leadership. Combined with a depressed multiple relative to owner earnings, the setup favors convergence toward intrinsic value over the next 12-18 months."
+};
+
+function badgeColor(kind, value) {
+  const v = (value || '').toString().toLowerCase();
+  const map = {
+    grade: {
+      'catalyst-driven value': 'green',
+      'fair value': 'blue',
+      'dead money': 'gray',
+      'value trap': 'red',
+      'value trap (melting iceberg)': 'red'
+    },
+    risk: { high: 'red', medium: 'yellow', low: 'green' },
+    cannibal: { cannibal: 'green', neutral: 'gray', diluter: 'red' },
+    moat: { strong: 'green', moderate: 'yellow', weak: 'red' },
+    lifecycle: {
+      'early growth': 'purple',
+      'early/hyper growth': 'purple',
+      'mature compounder': 'blue',
+      'declining': 'red',
+      'declining/legacy': 'red'
+    },
+    sbc: { high: 'red', normal: 'green' },
+    earningsQuality: { high: 'green', adequate: 'yellow', low: 'red' },
+    capitalVerdict: {
+      'value creator': 'green',
+      'no-moat compounder': 'yellow',
+      'value destroyer': 'red'
+    },
+    franchise: {
+      'franchise': 'green',
+      'efficient competitor': 'yellow',
+      'value destruction': 'red'
+    },
+    buyback: {
+      'value-accretive': 'green',
+      'neutral': 'gray',
+      'value-destructive': 'red'
+    }
+  };
+  return map[kind]?.[v] || 'gray';
+}
+
+function fmtNum(v, digits = 2) {
+  return typeof v === 'number' ? v.toFixed(digits) : (v ?? '—');
+}
+
+function fmtMoney(v) {
+  if (typeof v !== 'number') return escapeHtml(v ?? '—');
+  const abs = Math.abs(v);
+  if (abs >= 1e9) return '$' + (v / 1e9).toFixed(2) + 'B';
+  if (abs >= 1e6) return '$' + (v / 1e6).toFixed(2) + 'M';
+  return '$' + v.toFixed(2);
+}
+
+function fmtPct(v, digits = 1) {
+  return typeof v === 'number' ? v.toFixed(digits) + '%' : escapeHtml(v ?? '—');
+}
+
+function fmtRatio(v) {
+  return typeof v === 'number' ? v.toFixed(2) + 'x' : escapeHtml(v ?? '—');
+}
+
+function spreadColor(v) {
+  if (typeof v !== 'number') return 'gray';
+  if (v > 5) return 'green';
+  if (v >= 0) return 'yellow';
+  return 'red';
+}
+
+function scoreColor(v, good, ok) {
+  if (typeof v !== 'number') return 'gray';
+  if (v >= good) return 'green';
+  if (v >= ok) return 'yellow';
+  return 'red';
+}
+
+function tagList(items, cls, emptyLabel) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return `<span class="tag none">${escapeHtml(emptyLabel)}</span>`;
+  }
+  return `<div class="tag-list">${items.map(i => `<span class="tag ${cls}">${escapeHtml(i)}</span>`).join('')}</div>`;
+}
+
+function badgeHtml(text, color) {
+  return `<span class="badge" style="background:var(--${color}-bg);color:var(--${color})">${escapeHtml(text ?? '—')}</span>`;
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function fmtPrice(p) {
+  if (typeof p !== 'number') return escapeHtml(p ?? '—');
+  return '$' + p.toFixed(2);
+}
+
+function mosColor(pct) {
+  if (typeof pct !== 'number') return 'gray';
+  if (pct >= 25) return 'green';
+  if (pct >= 0) return 'yellow';
+  return 'red';
+}
+
+function render(data) {
+  const grade = data.investment_grade;
+  const gradeColor = badgeColor('grade', grade);
+  const mosPct = typeof data.adjusted_margin_of_safety_percentage === 'number'
+    ? data.adjusted_margin_of_safety_percentage : null;
+  const mosClamped = mosPct === null ? 0 : Math.max(0, Math.min(100, mosPct));
+  const mColor = mosColor(mosPct);
+
+  const compositeColor = scoreColor(data.composite_score, 70, 50);
+  const fScoreColor = scoreColor(data.piotroski_f_score, 7, 3);
+  const zScoreColor = typeof data.altman_z_score === 'number'
+    ? (data.altman_z_score > 2.6 ? 'green' : data.altman_z_score >= 1.1 ? 'yellow' : 'red') : 'gray';
+  const mScoreColor = typeof data.beneish_m_score === 'number'
+    ? (data.beneish_m_score > -1.78 ? 'red' : 'green') : 'gray';
+
+  report.innerHTML = `
+    <div class="header-card">
+      <div class="ticker-block">
+        <div class="ticker">${escapeHtml(data.ticker ?? '—')}</div>
+        <div class="price">Current Price: ${fmtPrice(data.current_price)}</div>
+        <div class="composite-chip">Composite Score: <span class="num" style="color:var(--${compositeColor})">${data.composite_score ?? '—'}</span>/100</div>
+      </div>
+      <div class="grade-badge" style="background:var(--${gradeColor}-bg);color:var(--${gradeColor});border:1px solid var(--${gradeColor})">
+        ${escapeHtml(grade ?? '—')}
+      </div>
+    </div>
+
+    <div class="section-title">Valuation &amp; Margin of Safety</div>
+    <div class="grid">
+      <div class="card">
+        <div class="label">Traditional Multiples</div>
+        <div class="value-plain">${escapeHtml(data.traditional_multiples ?? '—')}</div>
+      </div>
+      <div class="card">
+        <div class="label">Corporate Lifecycle Stage</div>
+        ${badgeHtml(data.corporate_lifecycle_stage, badgeColor('lifecycle', data.corporate_lifecycle_stage))}
+      </div>
+      <div class="card">
+        <div class="label">Denominator Trap Risk</div>
+        ${badgeHtml(data.denominator_trap_risk, badgeColor('risk', data.denominator_trap_risk))}
+      </div>
+      <div class="card">
+        <div class="label">Franchise Verdict (EPV vs. Reproduction Value)</div>
+        ${badgeHtml(data.franchise_verdict, badgeColor('franchise', data.franchise_verdict))}
+        <div class="value-plain" style="margin-top:6px">${fmtRatio(data.epv_to_rv_ratio)}</div>
+      </div>
+      <div class="card">
+        <div class="label">EPV per Share</div>
+        <div class="value-plain">${fmtMoney(data.epv_per_share)}</div>
+      </div>
+      <div class="card">
+        <div class="label">Reproduction Value per Share</div>
+        <div class="value-plain">${fmtMoney(data.reproduction_value_per_share)}</div>
+      </div>
+      <div class="card">
+        <div class="label">Intrinsic Value per Share</div>
+        <div class="value-plain">${fmtMoney(data.intrinsic_value_per_share)}</div>
+      </div>
+      <div class="card">
+        <div class="label">Reverse DCF Implied Growth</div>
+        <div class="value-plain">${fmtPct(data.reverse_dcf_implied_growth)}</div>
+      </div>
+      <div class="card">
+        <div class="label">Adjusted Margin of Safety</div>
+        <div class="value-plain" style="color:var(--${mColor})">${mosPct === null ? '—' : mosPct.toFixed(1) + '%'}</div>
+        <div class="mos-bar-track"><div class="mos-bar-fill" style="width:${mosClamped}%;background:var(--${mColor})"></div></div>
+      </div>
+    </div>
+
+    <div class="section-title">Owner Earnings &amp; Earnings Quality</div>
+    <div class="grid">
+      <div class="card">
+        <div class="label">Owner Earnings</div>
+        <div class="value-plain">${fmtMoney(data.owner_earnings)}</div>
+      </div>
+      <div class="card">
+        <div class="label">Maintenance Capex Estimate</div>
+        <div class="value-plain">${fmtMoney(data.maintenance_capex_estimate)}</div>
+      </div>
+      <div class="card">
+        <div class="label">SBC Dilution Flag</div>
+        ${badgeHtml(data.sbc_dilution_flag, badgeColor('sbc', data.sbc_dilution_flag))}
+      </div>
+      <div class="card">
+        <div class="label">Earnings Quality</div>
+        ${badgeHtml(data.earnings_quality_flag, badgeColor('earningsQuality', data.earnings_quality_flag))}
+      </div>
+      <div class="card">
+        <div class="label">Accrual Ratio</div>
+        <div class="value-plain">${fmtNum(data.accrual_ratio, 3)}</div>
+      </div>
+    </div>
+
+    <div class="section-title">Return on Capital</div>
+    <div class="grid">
+      <div class="card">
+        <div class="label">ROIC</div>
+        <div class="value-plain">${fmtPct(data.roic)}</div>
+      </div>
+      <div class="card">
+        <div class="label">ROIIC (3yr)</div>
+        <div class="value-plain">${fmtPct(data.roiic_3yr)}</div>
+      </div>
+      <div class="card">
+        <div class="label">WACC</div>
+        <div class="value-plain">${fmtPct(data.wacc)}</div>
+      </div>
+      <div class="card">
+        <div class="label">Economic Profit Spread</div>
+        <div class="value-plain" style="color:var(--${spreadColor(data.economic_profit_spread)})">${fmtPct(data.economic_profit_spread)}</div>
+      </div>
+      <div class="card">
+        <div class="label">Capital Verdict</div>
+        ${badgeHtml(data.capital_verdict, badgeColor('capitalVerdict', data.capital_verdict))}
+      </div>
+      <div class="card">
+        <div class="label">Share Cannibal Status</div>
+        ${badgeHtml(data.share_cannibal_status, badgeColor('cannibal', data.share_cannibal_status))}
+      </div>
+    </div>
+    <div class="text-card">
+      <div class="label">Per-Share Growth Quality</div>
+      <p>${escapeHtml(data.per_share_growth_quality ?? '—')}</p>
+    </div>
+
+    <div class="section-title">Forensic &amp; Distress Screens</div>
+    <div class="grid">
+      <div class="card">
+        <div class="label">Piotroski F-Score (Financial Health)</div>
+        <div class="value-plain" style="color:var(--${fScoreColor})">${data.piotroski_f_score ?? '—'} / 9</div>
+      </div>
+      <div class="card">
+        <div class="label">Altman Z''-Score (Bankrupcy)</div>
+        <div class="value-plain" style="color:var(--${zScoreColor})">${fmtNum(data.altman_z_score)}</div>
+      </div>
+      <div class="card">
+        <div class="label">Beneish M-Score (fraud)</div>
+        <div class="value-plain" style="color:var(--${mScoreColor})">${fmtNum(data.beneish_m_score)}</div>
+      </div>
+    </div>
+
+    <div class="section-title">Governance &amp; Capital Allocation</div>
+    <div class="grid">
+      <div class="card">
+        <div class="label">Intangible Moat Strength</div>
+        ${badgeHtml(data.intangible_moat_strength, badgeColor('moat', data.intangible_moat_strength))}
+      </div>
+      <div class="card">
+        <div class="label">Buyback Quality</div>
+        ${badgeHtml(data.buyback_quality, badgeColor('buyback', data.buyback_quality))}
+      </div>
+    </div>
+    <div class="text-card">
+      <div class="label">Insider Alignment Evaluation</div>
+      <p>${escapeHtml(data.insider_alignment_evaluation ?? '—')}</p>
+    </div>
+    <div class="text-card">
+      <div class="label">Dividend Coverage</div>
+      <p>${escapeHtml(data.dividend_coverage ?? '—')}</p>
+    </div>
+
+    <div class="section-title">Catalyst</div>
+    <div class="text-card">
+      <div class="label">Credible Catalyst Identified</div>
+      <p>${escapeHtml(data.credible_catalyst_identified ?? '—')}</p>
+    </div>
+
+    <div class="section-title">Flags &amp; Data Gaps</div>
+    <div class="text-card">
+      <div class="label">Red Flags</div>
+      ${tagList(data.red_flags, 'flag', 'None identified')}
+    </div>
+    <div class="text-card">
+      <div class="label">Data Gaps</div>
+      ${tagList(data.data_gaps, 'gap', 'None — all required inputs available')}
+    </div>
+
+    <div class="text-card rationale">
+      <div class="label">Forward-Looking Rationale</div>
+      <p>${escapeHtml(data.forward_looking_rationale ?? '—')}</p>
+    </div>
+  `;
+  report.style.display = 'block';
+  errorMsg.style.display = 'none';
+}
+
+function tryRender(text) {
+  try {
+    const data = JSON.parse(text);
+    render(data);
+    localStorage.setItem('lastAnalysisJson', text);
+  } catch (e) {
+    errorMsg.textContent = 'Invalid JSON: ' + e.message;
+    errorMsg.style.display = 'block';
+    report.style.display = 'none';
+  }
+}
+
+$('#renderBtn').addEventListener('click', () => tryRender(jsonInput.value));
+$('#sampleBtn').addEventListener('click', () => {
+  jsonInput.value = JSON.stringify(SAMPLE, null, 2);
+  tryRender(jsonInput.value);
+});
+$('#clearBtn').addEventListener('click', () => {
+  jsonInput.value = '';
+  report.style.display = 'none';
+  errorMsg.style.display = 'none';
+  localStorage.removeItem('lastAnalysisJson');
+});
+$('#fileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    jsonInput.value = ev.target.result;
+    tryRender(jsonInput.value);
+  };
+  reader.readAsText(file);
+});
+
+if (AUTO_DATA) {
+  jsonInput.value = JSON.stringify(AUTO_DATA, null, 2);
+  tryRender(jsonInput.value);
+} else {
+  const saved = localStorage.getItem('lastAnalysisJson');
+  if (saved) {
+    jsonInput.value = saved;
+    tryRender(saved);
+  }
+}
+</script>
+</body>
+</html>

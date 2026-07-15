@@ -3,7 +3,9 @@
     "allow": [
       "Bash(find ~/Downloads ~/Desktop ~/Documents -maxdepth 3 -iname \"*.json\" -newer \"/Users/ranveersembhi/Documents/aii agent/CLAUDE.md\" 2>/dev/null | grep -v node_modules | head -50)",
       "Read(//Users/ranveersembhi/Downloads/**)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(kill %1)",
+      "Bash(pkill -f \"http.server 8934\")"
     ]
   }
 }

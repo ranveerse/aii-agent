@@ -304,6 +304,8 @@ const SAMPLE = {
   epv_to_rv_ratio: 1.32,
   franchise_verdict: "Franchise",
   reverse_dcf_implied_growth: 2.1,
+  peg_ratio: 0.92,
+  peg_ratio_verdict: "Undervalued vs Growth",
   intrinsic_value_per_share: 96.60,
   adjusted_margin_of_safety_percentage: 32.5,
   piotroski_f_score: 7,
@@ -357,6 +359,12 @@ function badgeColor(kind, value) {
       'value-accretive': 'green',
       'neutral': 'gray',
       'value-destructive': 'red'
+    },
+    peg: {
+      'undervalued vs growth': 'green',
+      'fairly valued vs growth': 'yellow',
+      'overvalued vs growth': 'red',
+      'n/a': 'gray'
     }
   };
   return map[kind]?.[v] || 'gray';
@@ -426,6 +434,13 @@ function mosColor(pct) {
   return 'red';
 }
 
+function pegColor(v) {
+  if (typeof v !== 'number') return 'gray';
+  if (v < 1.0) return 'green';
+  if (v <= 1.2) return 'yellow';
+  return 'red';
+}
+
 function render(data) {
   const grade = data.investment_grade;
   const gradeColor = badgeColor('grade', grade);
@@ -487,6 +502,11 @@ function render(data) {
       <div class="card">
         <div class="label">Reverse DCF Implied Growth</div>
         <div class="value-plain">${fmtPct(data.reverse_dcf_implied_growth)}</div>
+      </div>
+      <div class="card">
+        <div class="label">PEG Ratio</div>
+        <div class="value-plain" style="color:var(--${pegColor(data.peg_ratio)})">${fmtRatio(data.peg_ratio)}</div>
+        ${badgeHtml(data.peg_ratio_verdict, badgeColor('peg', data.peg_ratio_verdict))}
       </div>
       <div class="card">
         <div class="label">Adjusted Margin of Safety</div>

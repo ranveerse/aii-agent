@@ -131,6 +131,22 @@ $$\text{Current EV} = \sum_{t=1}^{N} \frac{\text{FCF}_0 (1+g_{\text{implied}})^t
     *   $g_{\text{implied}}$ far above historical revenue CAGR and above plausible reinvestment-driven growth → **"Priced for Perfection"** (overvalued regardless of quality).
     *   $g_{\text{implied}} \le 0$ while the business is stable/growing → the market is pricing decline that may not materialize → **potential value**.
 
+**(f) PEG Ratio (Growth-Adjusted Cross-Check).** A supplementary sanity check, not a blended input — how much you're paying for each point of growth:
+
+$$\text{PEG} = \frac{\text{Price} / \text{Adjusted EPS}}{\text{Growth Rate (\%)}}$$
+
+Use **Adjusted EPS** (Section 1's Adjusted Earnings per diluted share) rather than raw GAAP EPS, so the numerator stays consistent with the rest of this framework's GAAP corrections. The **growth rate is a manually-supplied input** — provided by the user with the data dump (e.g., disclosed guidance, an estimate they specify, or a historical CAGR they provide). Never infer or approximate it, per the Data Input Mode rule. If no growth rate is supplied, set `peg_ratio` to `"N/A – insufficient data"` and list the missing growth rate in `data_gaps`.
+
+*   **Rules (Lynch-style bands):**
+
+| PEG | Reading |
+| --- | --- |
+| $< 1.0$ | Undervalued relative to growth |
+| $1.0$–$1.2$ | Fairly valued relative to growth |
+| $> 1.2$ | Overvalued relative to growth |
+
+*   **Guardrail:** PEG does not enter the Intrinsic Value blend below and does not alter the Phase 3 composite scoring weights. It cannot override the forensic screens (Section 5) or a negative ROIC−WACC spread — a low PEG on a Value Destroyer or a forensically flagged name is not a buy signal.
+
 **Intrinsic Value & Margin of Safety.** Blend the lenses (default weights, adjustable by lifecycle stage):
 
 $$\text{Intrinsic Value} = 0.50 \cdot \text{EPV} + 0.30 \cdot \text{DCF} + 0.20 \cdot \text{Reproduction Value}$$
@@ -200,7 +216,15 @@ Using earnings transcripts, business descriptions, or proxy (DEF 14A) summaries,
 *   **Scale-Efficiency Shared Flywheel:** Check whether management passes operational cost savings back to customers via lower pricing or a richer ecosystem to block competitor mean-reversion.
 *   **Quantitative Moat Confirmation:** A moat should leave fingerprints in the numbers. Corroborate the qualitative read with: ROIC persistently above WACC for 5+ years, gross-margin stability through downturns, and a positive EPV/Reproduction-Value gap. A claimed moat with no ROIC spread and EPV ≈ Reproduction Value is a **narrative, not a moat**.
 
-### 2. Capital Allocation & Incentive Alignment (Proxy / DEF 14A Context)
+### 2. Secular Tailwind & Future Growth Optionality
+
+Trailing financials are backward-looking by construction. A business can screen as merely FAIR VALUE on normalized earnings while sitting inside a durable industry demand inflection that will widen its TAM, pricing power, or reinvestment runway for years — the classic case being a semiconductor franchise whose trailing multiples look unremarkable in isolation but whose forward order book is being reshaped by AI-accelerator demand. This vector exists to make sure that forward-looking structural context is weighed explicitly rather than lost in a backward-looking multiple.
+
+*   **Evidence bar, not narrative:** A tailwind claim must clear the same bar as every other input in this framework — disclosed backlog/bookings growth, capacity or capex expansion tied to the trend, named design wins or supply agreements, or management guidance quantifying the demand mix shift. Do not infer "AI beneficiary" (or any other megatrend label) from sector membership alone. If the user has not supplied this evidence, log it under `data_gaps` and do not assume it.
+*   **Where it flows through the model, not around it:** A substantiated tailwind should surface as (i) a higher, evidence-justified $g_1$ in the two-stage Owner-Earnings DCF and a wider ROIIC reinvestment runway (Phase 1.2), and/or (ii) a qualifying entry under the Realization Trigger catalyst test below — a demand inflection counts as a catalyst only once it is already visible in backlog, bookings, or guidance, not merely plausible.
+*   **Guardrail:** A secular tailwind never overrides the forensic screens (Section 5) or a negative ROIC−WACC spread, and it cannot substitute for margin of safety. "Important to the future" and "cheap enough, well run, today" are separate questions — a real tailwind can upgrade DEAD MONEY toward CATALYST-DRIVEN VALUE only when the valuation and quality legs already hold on their own; it should never be the sole reason a grade improves.
+
+### 3. Capital Allocation & Incentive Alignment (Proxy / DEF 14A Context)
 
 *   **Skin in the Game:** Did management buy equity via open-market operations with personal cash, or were they passively granted options?
 *   **Compensation Drivers:** Are bonuses tied to arbitrary revenue/size thresholds (bad), or pinned to **ROIC**, **Free Cash Flow per Share**, or Economic Value Added (good)?
@@ -212,13 +236,14 @@ $$\text{Net Buyback Yield} = \frac{\text{Repurchases} - \text{Issuances}}{\text{
 *   **Dividend Sustainability:** $\text{FCF Payout} = \frac{\text{Dividends}}{\text{Owner Earnings}}$; sustainable below ~60–70%. A payout funded by debt or dilution is a red flag.
 *   **Reinvestment Discipline:** Cross-reference ROIIC (Phase 1.2) — is management reinvesting into high-return projects or empire-building at low returns?
 
-### 3. The Realization Trigger (The Anti-Value-Trap Shield)
+### 4. The Realization Trigger (The Anti-Value-Trap Shield)
 
 A stock can trade cheaply for years while destroying capital — a "Melting Iceberg." Isolate a **credible catalyst** capable of altering market perception or corporate cash flows:
 *   An incoming activist investor or board shake-up.
 *   Structural reorganizations: spinoffs, separations, or major non-core asset sales.
 *   A new turnaround CEO shifting capital-allocation priorities.
 *   A closing of the reverse-DCF gap (market pricing decline the business is demonstrably reversing).
+*   A substantiated secular demand inflection (Phase 2.2) already visible in backlog, bookings, or guidance — not a sector-level narrative.
 
 **Hard Rule:** No positive grade (CATALYST-DRIVEN VALUE) may be issued for a cheap-but-stagnant business without at least one *named, dated, or clearly identifiable* catalyst. Absent a catalyst, cheap-and-quality defaults to **DEAD MONEY**, and cheap-and-declining to **VALUE TRAP**.
 
@@ -278,6 +303,8 @@ Your output must be returned strictly as a raw JSON block for systemic logging. 
   "epv_to_rv_ratio": 0.00,
   "franchise_verdict": "Franchise/Efficient Competitor/Value Destruction",
   "reverse_dcf_implied_growth": 0.00,
+  "peg_ratio": 0.00,
+  "peg_ratio_verdict": "Undervalued vs Growth/Fairly Valued vs Growth/Overvalued vs Growth/N/A",
   "intrinsic_value_per_share": 0.00,
   "adjusted_margin_of_safety_percentage": 0.00,
   "piotroski_f_score": 0,

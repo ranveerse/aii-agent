@@ -296,6 +296,8 @@ const SAMPLE = {
   wacc: 9.1,
   economic_profit_spread: 5.7,
   capital_verdict: "Value Creator",
+  rule_of_40_score: 34.5,
+  rule_of_40_verdict: "Adequate",
   denominator_trap_risk: "Low",
   share_cannibal_status: "Cannibal",
   per_share_growth_quality: "Owner earnings per share and FCF per share both rising after dilution; buybacks are outrunning share issuance from equity comp.",
@@ -365,6 +367,11 @@ function badgeColor(kind, value) {
       'fairly valued vs growth': 'yellow',
       'overvalued vs growth': 'red',
       'n/a': 'gray'
+    },
+    ruleOf40: {
+      'efficient growth': 'green',
+      'adequate': 'yellow',
+      'inefficient growth': 'red'
     }
   };
   return map[kind]?.[v] || 'gray';
@@ -564,6 +571,11 @@ function render(data) {
       <div class="card">
         <div class="label">Share Cannibal Status</div>
         ${badgeHtml(data.share_cannibal_status, badgeColor('cannibal', data.share_cannibal_status))}
+      </div>
+      <div class="card">
+        <div class="label">Rule of 40</div>
+        <div class="value-plain">${fmtNum(data.rule_of_40_score, 1)}</div>
+        ${badgeHtml(data.rule_of_40_verdict, badgeColor('ruleOf40', data.rule_of_40_verdict))}
       </div>
     </div>
     <div class="text-card">

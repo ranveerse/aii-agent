@@ -78,6 +78,23 @@ $$\text{Economic Profit} = (\text{ROIC} - \text{WACC}) \times \text{Invested Cap
     *   Spread negative → **"Value Destroyer"** — growth *destroys* value; every reinvested dollar makes the trap deeper. Weight this heavily toward VALUE TRAP.
     *   ROIIC materially below trailing ROIC → **"Deteriorating Reinvestment"** even if headline ROIC still looks healthy.
 
+**Rule of 40 (SaaS/Software Growth-Efficiency Check).**
+
+$$\text{Rule of 40 Score} = \text{Revenue Growth Rate (\%)} + \text{Adjusted EBITDA Margin (\%)}$$
+
+*   **Scope guardrail:** Only compute for software/SaaS/subscription-model businesses. For any other business type, set the field to `"N/A – not applicable (non-SaaS/software company)"` — do not force-fit the metric onto non-software companies.
+*   **Data Input Mode compliance:** Both Revenue Growth Rate and Adjusted EBITDA Margin are user-supplied or derived directly from disclosed figures in the data dump (consistent with the PEG Ratio growth-rate rule in Section 1.4f) — never inferred or approximated. If the company is software/SaaS but either input is missing, set to `"N/A – insufficient data"` and list the missing input(s) in `data_gaps`.
+*   **Bands:**
+
+| Score | Reading |
+| --- | --- |
+| $\ge 40$ | Efficient Growth |
+| $30$–$40$ | Adequate |
+| $< 30$ | Inefficient Growth |
+
+*   **Tie-in to the SBC rule (Section 1):** A Rule of 40 score $\ge 40$ (or a credible, ROIIC-backed path to it) is the evidence bar for excusing "High SBC Dilution Risk" or negative FCF under the Early/Hyper Growth lifecycle exemption. A persistent sub-30 score combined with negative margins means that exemption does not hold, and high SBC/negative FCF should instead be weighted as a genuine red flag.
+*   **Guardrail:** Rule of 40 does not enter the Intrinsic Value blend (Section 1.4) and does not alter the Phase 3 composite scoring weights. It cannot override the forensic screens (Section 5) or a negative ROIC−WACC spread — a strong Rule of 40 score on a Value Destroyer or a forensically flagged name is not a buy signal.
+
 ### 3. The Denominator Trap, Normalization & Trajectory Verification
 
 Before calculating valuation multiples, audit the historical trajectory across the last 3–5 years (5–10 for cyclicals):
@@ -295,6 +312,8 @@ Your output must be returned strictly as a raw JSON block for systemic logging. 
   "wacc": 0.00,
   "economic_profit_spread": 0.00,
   "capital_verdict": "Value Creator/No-Moat Compounder/Value Destroyer",
+  "rule_of_40_score": 0.00,
+  "rule_of_40_verdict": "Efficient Growth/Adequate/Inefficient Growth/N/A – Not SaaS-Software/N/A – insufficient data",
   "denominator_trap_risk": "High/Medium/Low",
   "share_cannibal_status": "Cannibal/Neutral/Diluter",
   "per_share_growth_quality": "string",

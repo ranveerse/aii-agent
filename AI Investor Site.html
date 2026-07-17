@@ -159,21 +159,13 @@
   .empty-state-text { font-size:13px; color:var(--muted); line-height:1.6; max-width:440px; margin:0 auto; }
   .empty-row td { padding:28px 14px; text-align:center; color:var(--muted); font-family:var(--sans); font-size:13px; }
 
-  /* portfolio */
-  .portfolio-grid { display:grid; grid-template-columns:1.5fr 1fr; gap:28px; align-items:start; }
-  .alerts-card { background:var(--card); border:1px solid var(--border); padding:18px 20px; }
-  .alerts-title { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
-  .alerts-list { display:flex; flex-direction:column; gap:14px; }
-  .alert-item { border-left:3px solid; padding-left:12px; }
-  .alert-date { font-family:var(--mono); font-size:10.5px; color:var(--muted); margin-bottom:3px; }
-  .alert-text { font-size:13px; line-height:1.5; color:var(--ink); }
-
-  /* learn */
-  .lessons-grid { display:grid; grid-template-columns:1fr 1fr; gap:0; border-top:1px solid var(--border2); }
-  .lesson-card { border-bottom:1px solid var(--border2); padding:22px 26px 24px; border-right:1px solid var(--border2); }
-  .lesson-title { font-family:var(--serif); font-size:20px; line-height:1.25; font-weight:600; margin:0 0 8px; }
-  .lesson-excerpt { font-size:13.5px; line-height:1.65; color:var(--body); margin:0 0 10px; }
-  .lesson-link { font-size:12px; letter-spacing:.06em; text-transform:uppercase; font-weight:600; }
+  /* methodology */
+  .method-grid { display:grid; grid-template-columns:1fr 1fr; gap:0; border-top:1px solid var(--border2); margin-bottom:8px; }
+  .method-card { border-bottom:1px solid var(--border2); padding:22px 26px 24px; border-right:1px solid var(--border2); }
+  .method-title { font-family:var(--serif); font-size:18px; line-height:1.25; font-weight:600; margin:0 0 8px; }
+  .method-excerpt { font-size:13.5px; line-height:1.65; color:var(--body); }
+  .method-section-title { font-family:var(--serif); font-size:22px; font-weight:700; margin:40px 0 10px; }
+  .method-section-title:first-of-type { margin-top:0; }
 
   /* analyze */
   .analyze-head { display:flex; align-items:baseline; gap:12px; margin-bottom:6px; flex-wrap:wrap; }
@@ -211,8 +203,8 @@
   .footer-links { display:flex; gap:18px; font-size:12px; }
 
   @media (max-width: 860px) {
-    .today-grid, .analyze-grid, .portfolio-grid { grid-template-columns:1fr; }
-    .article-grid, .reports-grid, .lessons-grid { grid-template-columns:1fr; }
+    .today-grid, .analyze-grid { grid-template-columns:1fr; }
+    .article-grid, .reports-grid, .method-grid { grid-template-columns:1fr; }
     .grades-row { grid-template-columns:repeat(2,1fr); }
     .stats-grid { grid-template-columns:repeat(2,1fr); }
     .detail-body { grid-template-columns:1fr; }
@@ -235,13 +227,7 @@
   // array below is populated from real analysis output, not placeholder content.
   var S = [];
 
-  var holdingsRaw = [];
-
   var articlesData = [];
-
-  var alertsData = [];
-
-  var lessonsData = [];
 
   var recentRequests = [];
 
@@ -322,16 +308,6 @@
     return rows;
   }
 
-  function computeHoldings(){
-    return holdingsRaw.map(function(h){
-      var s = S.filter(function(x){ return x.t === h.t; })[0];
-      var gain = Math.round((s.p - h.cost) / h.cost * 100);
-      return { ticker: s.t, name: s.n, costStr: money(h.cost), priceStr: money(s.p),
-        gainStr: (gain > 0 ? '+' : '') + gain + '%', gainColor: gain >= 0 ? '#1f6b47' : '#92301f',
-        grade: shortG[s.g], gradeBg: GB[s.g] };
-    });
-  }
-
   function computeDetail(){
     var sel = S.filter(function(s){ return s.t === state.sel; })[0];
     if (!sel) return null;
@@ -359,6 +335,7 @@
   function goTab(tab){ state.tab = tab; render(); }
   function goAnalysis(){ state.tab = 'analysis'; state.sel = null; render(); }
   function goAnalysisLink(e){ e.preventDefault(); state.tab = 'analysis'; state.sel = null; render(); }
+  function goTodayLink(e){ e.preventDefault(); state.tab = 'today'; render(); }
   function openReport(ticker){ state.tab = 'analysis'; state.sel = ticker; render(); window.scrollTo(0,0); }
   function closeDetail(){ state.sel = null; render(); }
   function subscribe(){ state.subscribed = true; render(); }
@@ -378,6 +355,7 @@
   function resetAnalysis(){ state.requestedTicker = null; render(); }
 
   window.goTab = goTab; window.goAnalysis = goAnalysis; window.goAnalysisLink = goAnalysisLink;
+  window.goTodayLink = goTodayLink;
   window.openReport = openReport; window.closeDetail = closeDetail; window.subscribe = subscribe;
   window.toggleGrade = toggleGrade; window.sortBy = sortBy; window.onMinMosInput = onMinMosInput;
   window.runAnalysis = runAnalysis; window.resetAnalysis = resetAnalysis;
@@ -404,8 +382,7 @@
       ${item('today','Today')}
       ${item('analysis','Analysis')}
       ${item('screener','Screener')}
-      ${item('portfolio','Portfolio')}
-      ${item('learn','Learn')}
+      ${item('methodology','Methodology')}
       ${item('analyze','Request a stock')}
     </nav>`;
   }
@@ -655,77 +632,98 @@
     </section>`;
   }
 
-  function renderPortfolio(){
-    var holdings = computeHoldings();
-    var rows = holdings.length > 0
-      ? holdings.map(function(h){
-          return `
-          <tr class="table-row" onclick="openReport('${h.ticker}')">
-            <td><span class="ticker-mono">${h.ticker}</span> <span class="name-muted" style="margin-left:8px">${esc(h.name)}</span></td>
-            <td class="td-right">${h.costStr}</td>
-            <td class="td-right">${h.priceStr}</td>
-            <td class="td-right" style="font-weight:500;color:${h.gainColor}">${h.gainStr}</td>
-            <td><span class="grade-pill-sm" style="background:${h.gradeBg}">${h.grade}</span></td>
-          </tr>`;
-        }).join('')
-      : `<tr class="empty-row"><td colspan="5">No holdings yet.</td></tr>`;
+  var gradeDescriptions = {
+    'CATALYST-DRIVEN VALUE': 'Composite score ≥ 70, margin of safety ≥ 20%, a credible named catalyst, no forensic red flag, non-negative ROIIC trend.',
+    'FAIR VALUE': 'Trading rationally within its intrinsic/reproduction-value bands, or sound quality trading with margin of safety under 20%.',
+    'DEAD MONEY': 'Statistically cheap (margin of safety ≥ 20%) but weak insider alignment and zero forward-looking triggers.',
+    'VALUE TRAP': 'Low multiples masking decaying fundamentals, forensic or distress flags, misaligned incentives, and no visible turnaround catalyst.'
+  };
 
-    var alerts = alertsData.length > 0
-      ? alertsData.map(function(a){
-          return `
-          <div class="alert-item" style="border-left-color:${a.color}">
-            <div class="alert-date">${a.date}</div>
-            <div class="alert-text">${esc(a.text)}</div>
-          </div>`;
-        }).join('')
-      : `<div class="empty-state-text">No alerts yet.</div>`;
+  function renderMethodology(){
+    var gradeRows = gradeOrder.map(function(g){
+      return `
+      <tr>
+        <td style="white-space:nowrap"><span class="grade-pill-sm" style="background:${GB[g]}">${shortG[g]}</span> <span class="name-muted" style="margin-left:8px">${esc(g)}</span></td>
+        <td style="font-family:var(--sans);line-height:1.5">${esc(gradeDescriptions[g])}</td>
+      </tr>`;
+    }).join('');
 
     return `
-    <section class="screener-section" data-screen-label="Portfolio">
-      <h1 class="page-title" style="margin:0 0 6px">Portfolio</h1>
-      <p class="page-desc">Track holdings and receive alerts when a position crosses intrinsic value or a grade changes.</p>
-      <div class="portfolio-grid">
-        <table>
-          <thead>
-            <tr>
-              <th>Holding</th>
-              <th class="th-right">Cost basis</th>
-              <th class="th-right">Price</th>
-              <th class="th-right">Gain</th>
-              <th>Grade</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-        <div class="alerts-card">
-          <div class="alerts-title">Alerts</div>
-          <div class="alerts-list">${alerts}</div>
+    <section class="screener-section" data-screen-label="Methodology">
+      <h1 class="page-title" style="margin:0 0 6px">Methodology</h1>
+      <p class="page-desc" style="margin:0 0 26px">Every grade and every sentiment reading on this site comes from a deterministic rubric, not a vibe. This page is the full recipe for both.</p>
+
+      <h2 class="method-section-title">How a stock earns its grade</h2>
+      <p class="rationale">Grades come from a value-investing engine that corrects GAAP distortions, prices the business three independent ways, runs it through forensic fraud and distress screens, and refuses to reward "cheap" without a reason it stops being cheap.</p>
+      <div class="method-grid">
+        <div class="method-card">
+          <h3 class="method-title">Owner earnings, not reported income</h3>
+          <p class="method-excerpt">Net income is adjusted for R&amp;D, SaaS development, and brand spend, and total capex is split into maintenance vs. growth. Only maintenance capex is subtracted, so earnings reflect true cash-generating power, not accounting noise.</p>
+        </div>
+        <div class="method-card">
+          <h3 class="method-title">Return on capital vs. cost of capital</h3>
+          <p class="method-excerpt">ROIC is computed on an intangible-adjusted basis and compared to WACC. A rising spread marks a Value Creator; a spread near zero is a No-Moat Compounder; a negative spread is a Value Destroyer — growth that actively destroys value.</p>
+        </div>
+        <div class="method-card">
+          <h3 class="method-title">Intrinsic value, three ways</h3>
+          <p class="method-excerpt">Earnings Power Value (a no-growth perpetuity), a conservative two-stage owner-earnings DCF, and asset reproduction value are blended 50/30/20 into one intrinsic value per share. Margin of safety is the computed discount to price — never asserted.</p>
+        </div>
+        <div class="method-card">
+          <h3 class="method-title">Forensic screens, before anything else</h3>
+          <p class="method-excerpt">The Piotroski F-Score (financial strength), Altman Z″-Score (distress risk), and Beneish M-Score (earnings-manipulation risk) run on every name. A red flag here can override an otherwise cheap valuation entirely.</p>
+        </div>
+        <div class="method-card">
+          <h3 class="method-title">The realization trigger</h3>
+          <p class="method-excerpt">A stock can be cheap and high quality and still go nowhere for years. No positive grade is issued without a named, dated catalyst — an activist, a spinoff, a new CEO, a closing valuation gap, or a demand inflection already visible in bookings or guidance.</p>
+        </div>
+        <div class="method-card">
+          <h3 class="method-title">Capital allocation &amp; incentives</h3>
+          <p class="method-excerpt">Insider ownership, buyback quality (value-accretive only below intrinsic value), and whether executive pay is tied to ROIC or free cash flow rather than size, all factor into the final score.</p>
         </div>
       </div>
-    </section>`;
-  }
 
-  function renderLearn(){
-    var body = lessonsData.length > 0
-      ? `<div class="lessons-grid">${lessonsData.map(function(l){
-          return `
-          <article class="lesson-card">
-            <div class="kicker">${esc(l.kicker)}</div>
-            <h2 class="lesson-title">${esc(l.title)}</h2>
-            <p class="lesson-excerpt">${esc(l.excerpt)}</p>
-            <a href="#" class="lesson-link">${esc(l.time)} read →</a>
-          </article>`;
-        }).join('')}</div>`
-      : `<div class="empty-state">
-          <div class="empty-state-title">No lessons published yet</div>
-          <div class="empty-state-text">Educational articles will appear here once content is connected.</div>
-        </div>`;
+      <h3 class="block-title" style="margin-top:24px">Composite score &amp; grade mapping</h3>
+      <p class="excerpt" style="margin-bottom:14px">The dimensions above are weighted into one 0–100 composite score. Forensic red flags, or a negative return-on-capital spread with no catalyst, override the score outright and cap the grade regardless of how cheap the stock looks.</p>
+      <table style="margin-bottom:18px">
+        <thead><tr><th>Dimension</th><th class="th-right">Weight</th></tr></thead>
+        <tbody>
+          <tr><td>Margin of safety</td><td class="td-right">25</td></tr>
+          <tr><td>Return on capital</td><td class="td-right">20</td></tr>
+          <tr><td>Earnings quality &amp; forensics</td><td class="td-right">15</td></tr>
+          <tr><td>Moat strength</td><td class="td-right">15</td></tr>
+          <tr><td>Capital allocation &amp; alignment</td><td class="td-right">15</td></tr>
+          <tr><td>Catalyst</td><td class="td-right">10</td></tr>
+        </tbody>
+      </table>
+      <table style="margin-bottom:44px">
+        <thead><tr><th>Grade</th><th>Requires</th></tr></thead>
+        <tbody>${gradeRows}</tbody>
+      </table>
 
-    return `
-    <section class="screener-section" data-screen-label="Learn">
-      <h1 class="page-title" style="margin:0 0 6px">Learn the discipline</h1>
-      <p class="page-desc" style="margin:0 0 26px">The machine computes; the principles come from Graham, Buffett, and Munger. Start here — no jargon assumed.</p>
-      ${body}
+      <h2 class="method-section-title">The Mr. Market Sentiment Index</h2>
+      <p class="rationale">A contrarian, market-wide gauge on a 0–100 scale — 0 means Mr. Market is fearful and prices are cheap (opportunity), 100 means he's euphoric and prices are stretched (danger). It says nothing about any one stock; it's the temperature of the whole market, read on the <a href="#" onclick="goTodayLink(event)">Today tab</a>.</p>
+      <table style="margin-bottom:18px">
+        <thead><tr><th>Component</th><th>Rises with</th><th class="th-right">Weight</th></tr></thead>
+        <tbody>
+          <tr><td>VIX</td><td>Fear</td><td class="td-right">15%</td></tr>
+          <tr><td>S&amp;P 500 vs. 125-day moving average</td><td>Greed</td><td class="td-right">15%</td></tr>
+          <tr><td>CAPE percentile</td><td>Greed</td><td class="td-right">25%</td></tr>
+          <tr><td>Equity risk premium</td><td>Fear</td><td class="td-right">25%</td></tr>
+          <tr><td>AAII bull–bear spread</td><td>Greed</td><td class="td-right">20%</td></tr>
+        </tbody>
+      </table>
+      <p class="excerpt" style="margin-bottom:18px">Each raw reading is converted to a percentile against its own trailing 10-year history, then oriented so higher always means greedier — the two components that rise with fear (VIX, equity risk premium) are inverted first. The five oriented scores are then combined using the weights above into one composite reading.</p>
+      <table style="margin-bottom:20px">
+        <thead><tr><th>Score</th><th>Zone</th><th>Reading</th></tr></thead>
+        <tbody>
+          <tr><td>0–20</td><td>Deep Value</td><td style="font-family:var(--sans)">Extreme fear — hunt bargains</td></tr>
+          <tr><td>20–40</td><td>Fearful</td><td style="font-family:var(--sans)">Look for opportunities</td></tr>
+          <tr><td>40–60</td><td>Neutral</td><td style="font-family:var(--sans)">Normal</td></tr>
+          <tr><td>60–80</td><td>Greedy</td><td style="font-family:var(--sans)">Demand a wider margin of safety</td></tr>
+          <tr><td>80–100</td><td>Euphoric</td><td style="font-family:var(--sans)">Maximum caution</td></tr>
+        </tbody>
+      </table>
+      <div class="disclaimer">Grades and sentiment readings are produced by an AI model against this rubric and reviewed by a human before publication. Nothing on this page or this site is investment advice.</div>
     </section>`;
   }
 
@@ -798,8 +796,7 @@
     if (state.tab === 'today') body = renderToday(reports, gauge);
     else if (state.tab === 'analysis') body = renderAnalysis(reports);
     else if (state.tab === 'screener') body = renderScreener(reports);
-    else if (state.tab === 'portfolio') body = renderPortfolio();
-    else if (state.tab === 'learn') body = renderLearn();
+    else if (state.tab === 'methodology') body = renderMethodology();
     else if (state.tab === 'analyze') body = renderAnalyze();
 
     document.getElementById('app').innerHTML = `

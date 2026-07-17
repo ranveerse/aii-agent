@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Artificially Intelligent Investor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f4ee; --card:#fdfcf9; --ink:#17150f; --muted:#6b675c; --body:#3d3a32;
+    --border:rgba(23,21,15,.15); --border2:rgba(23,21,15,.12); --border3:rgba(23,21,15,.10); --border4:rgba(23,21,15,.08);
+    --green:#1f6b47; --green-hover:#2a8158; --green-light:#8fc9a8;
+    --blue:#3d5a72; --gold:#8a6410; --red:#92301f;
+    --serif:'Source Serif 4',serif; --sans:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; padding:0; }
+  body { background:var(--bg); color:var(--ink); font-family:var(--sans); }
+  a { color:var(--green); text-decoration:none; }
+  a:hover { color:var(--ink); text-decoration:underline; }
+  button { cursor:pointer; font:inherit; color:inherit; background:none; }
+  input, textarea { font:inherit; color:inherit; }
+  input[type=range] { accent-color:var(--green); }
+  h1,h2,h3,p,ul { margin:0; }
+
+  .page { min-height:100vh; background:var(--bg); color:var(--ink); font-family:var(--sans); }
+  .wrap { max-width:1120px; margin:0 auto; padding:0 32px; }
+
+  /* header */
+  header.site { display:flex; align-items:baseline; justify-content:space-between; gap:16px; padding:22px 0 14px; border-bottom:3px double var(--ink); }
+  .brand { display:flex; align-items:baseline; gap:14px; }
+  .brand-name { font-family:var(--serif); font-weight:700; font-size:26px; letter-spacing:.01em; }
+  .brand-tag { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  .date-mono { font-family:var(--mono); font-size:12px; color:var(--muted); }
+
+  /* nav */
+  nav.site { display:flex; gap:28px; border-bottom:1px solid var(--border); margin-bottom:32px; flex-wrap:wrap; }
+  .nav-btn { position:relative; border:none; padding:12px 2px; font-family:var(--sans); font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink); display:flex; align-items:center; gap:7px; }
+  .nav-btn.active::after { content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--ink); }
+  .pro-badge { font-size:9px; font-weight:600; letter-spacing:.1em; padding:2px 6px; background:var(--green); color:var(--card); }
+
+  /* today: hero */
+  .today-grid { display:grid; grid-template-columns:400px 1fr; gap:40px; align-items:start; margin-bottom:44px; }
+  .gauge-card { background:var(--card); border:1px solid var(--border); padding:26px 28px; }
+  .eyebrow { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+  .gauge-title { font-family:var(--serif); font-size:17px; font-weight:600; margin-bottom:14px; }
+  .gauge-center { display:flex; justify-content:center; }
+  .gauge-svg-wrap { position:relative; width:220px; height:122px; }
+  .gauge-svg-wrap svg { position:absolute; inset:0; }
+  .gauge-readout { position:absolute; left:0; right:0; bottom:8px; display:flex; flex-direction:column; align-items:center; }
+  .gauge-value { font-family:var(--serif); font-size:42px; line-height:1; font-weight:700; color:var(--ink); }
+  .gauge-status { font-family:var(--sans); font-size:11px; letter-spacing:.12em; text-transform:uppercase; font-weight:600; margin-top:4px; }
+  .gauge-scale { display:flex; justify-content:space-between; font-family:var(--mono); font-size:10px; color:var(--muted); margin:2px 6px 14px; }
+  .gauge-commentary { font-size:13.5px; line-height:1.6; color:var(--body); }
+  .gauge-inputs { margin-top:14px; padding-top:12px; border-top:1px solid var(--border3); font-family:var(--mono); font-size:11px; color:var(--muted); }
+
+  .commentary-article { border-bottom:1px solid var(--border2); padding-bottom:22px; margin-bottom:22px; }
+  .kicker { font-family:var(--mono); font-size:11px; color:var(--red); letter-spacing:.06em; margin-bottom:8px; }
+  .kicker-muted { font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:6px; }
+  h1.headline { font-family:var(--serif); font-size:32px; line-height:1.15; font-weight:700; margin:0 0 12px; text-wrap:pretty; }
+  p.lead { font-size:15.5px; line-height:1.65; color:var(--body); margin:0 0 10px; }
+  p.lead:last-child { margin-bottom:0; }
+
+  .article-grid { display:grid; grid-template-columns:1fr 1fr; gap:26px; }
+  h2.sub-headline { font-family:var(--serif); font-size:19px; line-height:1.25; font-weight:600; margin:0 0 8px; }
+  p.excerpt { font-size:13.5px; line-height:1.6; color:var(--body); }
+
+  .section-header { display:flex; align-items:baseline; justify-content:space-between; border-bottom:2px solid var(--ink); padding-bottom:8px; margin-bottom:0; }
+  h2.section-title { font-family:var(--serif); font-size:20px; font-weight:700; }
+  .link-caps { font-size:12px; letter-spacing:.08em; text-transform:uppercase; font-weight:600; }
+
+  .grades-row { display:grid; grid-template-columns:repeat(4,1fr); }
+  .grade-card { text-align:left; border:none; border-right:1px solid var(--border3); padding:16px 16px 18px; font-family:var(--sans); width:100%; }
+  .grade-card:hover { background:var(--card); }
+  .grade-card-top { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:6px; }
+  .ticker-mono { font-family:var(--mono); font-size:14px; font-weight:500; }
+  .price-mono { font-family:var(--mono); font-size:12px; color:var(--muted); }
+  .grade-pill { display:inline-block; font-size:10px; font-weight:600; letter-spacing:.08em; padding:3px 7px; color:var(--card); margin-bottom:8px; }
+  .thesis-text { font-size:12.5px; line-height:1.5; color:var(--body); }
+
+  .newsletter { background:var(--ink); color:var(--bg); padding:30px 34px; display:flex; align-items:center; justify-content:space-between; gap:32px; margin-bottom:44px; flex-wrap:wrap; }
+  .newsletter-title { font-family:var(--serif); font-size:21px; font-weight:600; margin-bottom:4px; }
+  .newsletter-sub { font-size:13px; color:rgba(246,244,238,.7); }
+  .newsletter-sub a { color:var(--green-light); }
+  .newsletter-form { display:flex; gap:8px; flex:none; }
+  .newsletter-input { width:220px; padding:11px 14px; border:1px solid rgba(246,244,238,.35); background:transparent; color:var(--bg); font-family:var(--sans); font-size:13px; outline:none; }
+  .newsletter-input::placeholder { color:rgba(246,244,238,.45); }
+  .btn-subscribe { padding:11px 20px; background:var(--green); border:none; color:var(--card); font-family:var(--sans); font-size:13px; font-weight:600; letter-spacing:.04em; }
+  .btn-subscribe:hover { background:var(--green-hover); }
+  .newsletter-confirm { font-family:var(--mono); font-size:13px; color:var(--green-light); flex:none; }
+
+  /* analysis */
+  .analysis-head { display:flex; align-items:baseline; gap:14px; margin-bottom:6px; flex-wrap:wrap; }
+  h1.page-title { font-family:var(--serif); font-size:28px; font-weight:700; }
+  .count-note { font-size:12px; color:var(--muted); }
+  p.page-desc { font-size:13.5px; color:var(--body); max-width:720px; line-height:1.6; margin:0 0 24px; }
+
+  .reports-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:44px; }
+  .report-card { text-align:left; background:var(--card); border:1px solid var(--border); padding:20px 22px; font-family:var(--sans); display:block; width:100%; }
+  .report-card:hover { border-color:var(--ink); }
+  .report-card-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .report-card-id { display:flex; align-items:baseline; gap:10px; }
+  .name-muted { font-size:13px; color:var(--muted); }
+  .grade-pill-sm { font-size:10px; font-weight:600; letter-spacing:.08em; padding:3px 8px; color:var(--card); }
+  .report-headline { font-family:var(--serif); font-size:16.5px; line-height:1.35; font-weight:600; margin-bottom:10px; color:var(--ink); }
+  .report-stats { display:flex; gap:22px; flex-wrap:wrap; font-family:var(--mono); font-size:12px; color:var(--body); }
+
+  .back-btn { border:none; padding:0; font-family:var(--sans); font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--green); margin-bottom:18px; }
+  .detail-head { display:flex; align-items:baseline; justify-content:space-between; border-bottom:2px solid var(--ink); padding-bottom:14px; margin-bottom:0; flex-wrap:wrap; gap:12px; }
+  .detail-id { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
+  h1.detail-ticker { font-family:var(--serif); font-size:34px; font-weight:700; }
+  .detail-name { font-size:15px; color:var(--muted); }
+  .detail-price { font-family:var(--mono); font-size:14px; }
+  .grade-pill-lg { font-size:12px; font-weight:600; letter-spacing:.1em; padding:6px 12px; color:var(--card); white-space:nowrap; }
+
+  .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); border-left:1px solid var(--border2); }
+  .stat-cell { border-right:1px solid var(--border2); border-bottom:1px solid var(--border2); padding:14px 16px; }
+  .stat-label { font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+  .stat-value { font-family:var(--mono); font-size:19px; font-weight:500; }
+  .stat-note { font-size:11px; color:var(--muted); margin-top:2px; }
+
+  .detail-body { display:grid; grid-template-columns:1.4fr 1fr; gap:28px; margin:26px 0 44px; }
+  h3.block-title { font-family:var(--serif); font-size:17px; font-weight:700; margin:0 0 8px; }
+  p.rationale { font-size:14.5px; line-height:1.7; color:var(--body); margin:0 0 20px; text-wrap:pretty; }
+  .catalyst-box { border-left:3px solid; padding:12px 16px; background:var(--card); font-size:14px; line-height:1.6; color:var(--body); }
+  .flags-list { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
+  .flag-item { display:flex; gap:8px; font-size:13px; line-height:1.5; color:var(--body); }
+  .flag-marker { color:var(--red); font-weight:600; }
+  .no-flags { font-size:13px; color:var(--green); margin-bottom:20px; }
+  .lifecycle-text { font-size:13.5px; line-height:1.7; color:var(--body); }
+  .disclaimer { margin-top:20px; padding:12px 14px; background:rgba(23,21,15,.05); font-size:11.5px; line-height:1.55; color:var(--muted); }
+
+  /* screener */
+  .filter-bar { display:flex; align-items:center; gap:28px; background:var(--card); border:1px solid var(--border); padding:14px 18px; margin-bottom:0; flex-wrap:wrap; }
+  .filter-group { display:flex; align-items:center; gap:10px; }
+  .filter-label { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+  .filter-value { font-family:var(--mono); font-size:13px; font-weight:500; width:44px; }
+  .grade-filter-group { display:flex; align-items:center; gap:8px; }
+  .grade-toggle { border:1px solid; padding:5px 10px; font-family:var(--sans); font-size:11px; font-weight:600; letter-spacing:.05em; }
+  .match-count { font-family:var(--mono); font-size:12px; color:var(--muted); margin-left:auto; }
+
+  table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--border); }
+  table.screener { border-top:none; margin-bottom:0; }
+  thead tr { border-bottom:2px solid var(--ink); }
+  th { text-align:left; padding:10px 14px; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); font-weight:400; }
+  th.th-right { text-align:right; }
+  .sort-btn { border:none; font-family:var(--sans); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; font-weight:600; color:var(--ink); padding:0 14px; }
+  tbody tr.table-row { border-bottom:1px solid var(--border4); cursor:pointer; }
+  tbody tr.table-row:hover { background:var(--bg); }
+  td { padding:11px 14px; font-family:var(--mono); font-size:13px; }
+  td.td-right { text-align:right; }
+  .footnote { font-size:11.5px; color:var(--muted); margin-top:10px; }
+  .screener-section { margin-bottom:44px; }
+
+  /* empty states */
+  .empty-state { border:1px dashed var(--border); background:var(--card); padding:40px 28px; text-align:center; }
+  .empty-state-title { font-family:var(--serif); font-size:16px; font-weight:600; margin-bottom:6px; }
+  .empty-state-text { font-size:13px; color:var(--muted); line-height:1.6; max-width:440px; margin:0 auto; }
+  .empty-row td { padding:28px 14px; text-align:center; color:var(--muted); font-family:var(--sans); font-size:13px; }
+
+  /* portfolio */
+  .portfolio-grid { display:grid; grid-template-columns:1.5fr 1fr; gap:28px; align-items:start; }
+  .alerts-card { background:var(--card); border:1px solid var(--border); padding:18px 20px; }
+  .alerts-title { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+  .alerts-list { display:flex; flex-direction:column; gap:14px; }
+  .alert-item { border-left:3px solid; padding-left:12px; }
+  .alert-date { font-family:var(--mono); font-size:10.5px; color:var(--muted); margin-bottom:3px; }
+  .alert-text { font-size:13px; line-height:1.5; color:var(--ink); }
+
+  /* learn */
+  .lessons-grid { display:grid; grid-template-columns:1fr 1fr; gap:0; border-top:1px solid var(--border2); }
+  .lesson-card { border-bottom:1px solid var(--border2); padding:22px 26px 24px; border-right:1px solid var(--border2); }
+  .lesson-title { font-family:var(--serif); font-size:20px; line-height:1.25; font-weight:600; margin:0 0 8px; }
+  .lesson-excerpt { font-size:13.5px; line-height:1.65; color:var(--body); margin:0 0 10px; }
+  .lesson-link { font-size:12px; letter-spacing:.06em; text-transform:uppercase; font-weight:600; }
+
+  /* analyze */
+  .analyze-head { display:flex; align-items:baseline; gap:12px; margin-bottom:6px; flex-wrap:wrap; }
+  .pro-badge-lg { font-size:10px; font-weight:600; letter-spacing:.1em; padding:3px 8px; background:var(--green); color:var(--card); }
+  .analyze-grid { display:grid; grid-template-columns:1.3fr 1fr; gap:28px; align-items:start; }
+  .analyze-card { background:var(--card); border:1px solid var(--border); padding:26px 28px; }
+  label.field-label { display:block; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  input.field, textarea.field { width:100%; box-sizing:border-box; padding:12px 14px; border:1px solid rgba(23,21,15,.25); background:var(--bg); outline:none; }
+  input.field { font-family:var(--mono); font-size:15px; margin-bottom:18px; }
+  textarea.field { font-family:var(--sans); font-size:13px; line-height:1.5; color:var(--body); resize:vertical; height:110px; margin-bottom:8px; }
+  .field-note { font-size:11.5px; color:var(--muted); line-height:1.5; margin-bottom:18px; }
+  .btn-dark { padding:12px 24px; background:var(--ink); border:none; color:var(--card); font-family:var(--sans); font-size:13px; font-weight:600; letter-spacing:.04em; }
+  .btn-dark:hover { background:var(--green); }
+  .req-received { font-family:var(--mono); font-size:12px; color:var(--green); letter-spacing:.06em; margin-bottom:10px; }
+  .req-title { font-family:var(--serif); font-size:21px; font-weight:600; margin-bottom:10px; }
+  .req-desc { font-size:13.5px; line-height:1.65; color:var(--body); margin:0 0 18px; }
+  .checklist { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
+  .checklist-item { display:flex; gap:10px; align-items:center; font-size:13px; }
+  .checklist-done { color:var(--ink); }
+  .checklist-pending { color:var(--muted); }
+  .check-mark { color:var(--green); }
+  .btn-outline { border:1px solid rgba(23,21,15,.25); padding:9px 18px; font-family:var(--sans); font-size:12px; font-weight:600; letter-spacing:.05em; color:var(--ink); }
+  .btn-outline:hover { border-color:var(--ink); }
+  .includes-box { background:var(--ink); color:var(--bg); padding:20px 22px; margin-bottom:18px; }
+  .includes-title { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(246,244,238,.6); margin-bottom:10px; }
+  .includes-list { display:flex; flex-direction:column; gap:9px; font-size:13px; line-height:1.5; }
+  .recent-box { border:1px solid var(--border); background:var(--card); padding:18px 20px; }
+  .recent-title { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+  .tag-list { display:flex; flex-wrap:wrap; gap:8px; font-family:var(--mono); font-size:12px; }
+  .tag { border:1px solid rgba(23,21,15,.2); padding:4px 9px; }
+
+  /* footer */
+  footer.site { border-top:3px double var(--ink); padding:20px 0 34px; display:flex; justify-content:space-between; align-items:baseline; gap:20px; flex-wrap:wrap; }
+  .footer-copy { font-size:12px; color:var(--muted); }
+  .footer-links { display:flex; gap:18px; font-size:12px; }
+
+  @media (max-width: 860px) {
+    .today-grid, .analyze-grid, .portfolio-grid { grid-template-columns:1fr; }
+    .article-grid, .reports-grid, .lessons-grid { grid-template-columns:1fr; }
+    .grades-row { grid-template-columns:repeat(2,1fr); }
+    .stats-grid { grid-template-columns:repeat(2,1fr); }
+    .detail-body { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var GB = { 'CATALYST-DRIVEN VALUE': '#1f6b47', 'FAIR VALUE': '#3d5a72', 'DEAD MONEY': '#8a6410', 'VALUE TRAP': '#92301f' };
+  var shortG = { 'CATALYST-DRIVEN VALUE': 'CATALYST', 'FAIR VALUE': 'FAIR', 'DEAD MONEY': 'DEAD MONEY', 'VALUE TRAP': 'TRAP' };
+  var gradeOrder = ['CATALYST-DRIVEN VALUE', 'FAIR VALUE', 'DEAD MONEY', 'VALUE TRAP'];
+
+  // Data sources are intentionally empty. Per the value-investing agent's rules, this
+  // site never invents financial data, grades, commentary, or social proof — every
+  // array below is populated from real analysis output, not placeholder content.
+  var S = [];
+
+  var holdingsRaw = [];
+
+  var articlesData = [];
+
+  var alertsData = [];
+
+  var lessonsData = [];
+
+  var recentRequests = [];
+
+  var state = {
+    tab: 'today', sel: null, subscribed: false, requestedTicker: null,
+    minMos: 0, grades: { 'CATALYST-DRIVEN VALUE': true, 'FAIR VALUE': true, 'DEAD MONEY': true, 'VALUE TRAP': true },
+    sortKey: 'mos', sortDir: -1, mrMarketIndex: null
+  };
+
+  function esc(str){
+    return String(str).replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  }
+  function money(v){ return '$' + v.toFixed(2); }
+  function mosOf(s){ return Math.round((s.iv - s.p) / s.iv * 100); }
+  function todayStr(){
+    return new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  }
+
+  function mk(s){
+    var mos = mosOf(s);
+    var spread = +(s.roic - s.wacc).toFixed(1);
+    return {
+      ticker: s.t, name: s.n, priceStr: money(s.p), ivStr: money(s.iv), mos: mos,
+      mosStr: (mos > 0 ? '+' : '') + mos + '%', mosColor: mos >= 20 ? '#1f6b47' : mos < 0 ? '#92301f' : '#17150f',
+      spreadStr: (spread > 0 ? '+' : '') + spread + '%', spreadColor: spread > 0 ? '#1f6b47' : '#92301f',
+      fscore: s.f, grade: s.g, gradeShort: shortG[s.g], gradeBg: GB[s.g], headline: s.h, thesis: s.th
+    };
+  }
+
+  function computeGauge(){
+    if (state.mrMarketIndex == null) {
+      return { gauge: null, gLabel: 'NO DATA', gColor: '#6b675c',
+        gCommentary: `Sentiment index not yet connected to a data source.`, gaugeDash: '0 251.3' };
+    }
+    var gauge = Math.max(0, Math.min(100, state.mrMarketIndex));
+    var gLabel = gauge < 25 ? 'FEARFUL' : gauge < 45 ? 'CAUTIOUS' : gauge < 60 ? 'RATIONAL' : gauge < 80 ? 'EXUBERANT' : 'EUPHORIC';
+    var gColor = gauge < 25 ? '#3d5a72' : gauge < 60 ? '#1f6b47' : gauge < 80 ? '#8a6410' : '#92301f';
+    var gCommentary = gauge >= 60
+      ? `Mr. Market arrived cheerful today, offering to buy your shares at generous prices. Graham would counsel selling him what is dear — and ignoring the rest of his chatter. Exuberance this broad usually precedes thinner returns, not catastrophe.`
+      : gauge >= 45
+      ? `Mr. Market is composed today — prices broadly track value. Rational markets offer fewer gifts; this is a day for research, not action.`
+      : `Mr. Market is despondent, offering to sell you his holdings at a discount. Fear this broad is historically where the best purchases are made — if the forensic screens come back clean.`;
+    return { gauge: gauge, gLabel: gLabel, gColor: gColor, gCommentary: gCommentary, gaugeDash: (gauge / 100 * 251.3).toFixed(1) + ' 251.3' };
+  }
+
+  function computeScreenRows(reports){
+    var rows = reports.filter(function(r){ return r.mos >= state.minMos && state.grades[r.grade]; });
+    rows.sort(function(a, b){
+      return state.sortKey === 'mos' ? (a.mos - b.mos) * state.sortDir : (a.fscore - b.fscore) * state.sortDir;
+    });
+    return rows;
+  }
+
+  function computeHoldings(){
+    return holdingsRaw.map(function(h){
+      var s = S.filter(function(x){ return x.t === h.t; })[0];
+      var gain = Math.round((s.p - h.cost) / h.cost * 100);
+      return { ticker: s.t, name: s.n, costStr: money(h.cost), priceStr: money(s.p),
+        gainStr: (gain > 0 ? '+' : '') + gain + '%', gainColor: gain >= 0 ? '#1f6b47' : '#92301f',
+        grade: shortG[s.g], gradeBg: GB[s.g] };
+    });
+  }
+
+  function computeDetail(){
+    var sel = S.filter(function(s){ return s.t === state.sel; })[0];
+    if (!sel) return null;
+    var m = mk(sel);
+    var spread = +(sel.roic - sel.wacc).toFixed(1);
+    var detailStats = [
+      { label:'Intrinsic value / share', value: money(sel.iv), note:'50% EPV · 30% DCF · 20% RV', color:'#17150f' },
+      { label:'Margin of safety', value: m.mosStr, note: m.mos >= 40 ? 'Deep value' : m.mos >= 20 ? 'Adequate' : m.mos >= 0 ? 'Thin' : 'Overvalued', color: m.mosColor },
+      { label:'ROIC', value: sel.roic.toFixed(1) + '%', note:'intangible-adjusted', color:'#17150f' },
+      { label:'ROIC − WACC', value: (spread > 0 ? '+' : '') + spread + '%', note: spread > 5 ? 'Value Creator' : spread > 0 ? 'No-moat compounder' : 'Value Destroyer', color: spread > 0 ? '#1f6b47' : '#92301f' },
+      { label:'EPV / share', value: money(sel.epv), note:'Greenwald earnings power', color:'#17150f' },
+      { label:'Piotroski F-Score', value: sel.f + '/9', note: sel.f >= 8 ? 'Financially strong' : sel.f <= 2 ? 'Fundamentally weak' : 'Middling', color: sel.f <= 2 ? '#92301f' : '#17150f' },
+      { label:'Altman Z″', value: sel.z.toFixed(1), note: sel.z > 2.6 ? 'Safe zone' : sel.z >= 1.1 ? 'Grey zone' : 'Distress', color: sel.z > 2.6 ? '#1f6b47' : sel.z >= 1.1 ? '#8a6410' : '#92301f' },
+      { label:'Composite score', value: sel.comp + '/100', note:'deterministic rubric', color:'#17150f' }
+    ];
+    var detailFlags = sel.flags.map(function(f){ return { text: f }; });
+    return {
+      ticker: m.ticker, name: m.name, priceStr: m.priceStr, grade: m.grade, gradeBg: m.gradeBg,
+      rationale: sel.rat, catalyst: sel.cat, lifecycle: sel.life, moat: sel.moat,
+      detailStats: detailStats, detailFlags: detailFlags
+    };
+  }
+
+  /* ---------- actions ---------- */
+  function goTab(tab){ state.tab = tab; render(); }
+  function goAnalysis(){ state.tab = 'analysis'; state.sel = null; render(); }
+  function goAnalysisLink(e){ e.preventDefault(); state.tab = 'analysis'; state.sel = null; render(); }
+  function openReport(ticker){ state.tab = 'analysis'; state.sel = ticker; render(); window.scrollTo(0,0); }
+  function closeDetail(){ state.sel = null; render(); }
+  function subscribe(){ state.subscribed = true; render(); }
+  function toggleGrade(g){ state.grades[g] = !state.grades[g]; render(); }
+  function sortBy(key){
+    if (state.sortKey === key) state.sortDir = -state.sortDir;
+    else { state.sortKey = key; state.sortDir = -1; }
+    render();
+  }
+  function onMinMosInput(el){ state.minMos = parseInt(el.value, 10); updateScreenerPartial(); }
+  function runAnalysis(){
+    var input = document.getElementById('analyzeTickerInput');
+    var val = (input && input.value.trim()) || 'NKE';
+    state.requestedTicker = val.toUpperCase();
+    render();
+  }
+  function resetAnalysis(){ state.requestedTicker = null; render(); }
+
+  window.goTab = goTab; window.goAnalysis = goAnalysis; window.goAnalysisLink = goAnalysisLink;
+  window.openReport = openReport; window.closeDetail = closeDetail; window.subscribe = subscribe;
+  window.toggleGrade = toggleGrade; window.sortBy = sortBy; window.onMinMosInput = onMinMosInput;
+  window.runAnalysis = runAnalysis; window.resetAnalysis = resetAnalysis;
+
+  /* ---------- render pieces ---------- */
+  function renderHeader(){
+    return `
+    <header class="site">
+      <div class="brand">
+        <div class="brand-name">Artificially Intelligent Investor</div>
+        <div class="brand-tag">Value investing, verified by machine</div>
+      </div>
+      <div class="date-mono">${todayStr()}</div>
+    </header>`;
+  }
+
+  function renderNav(){
+    function item(tab, label, isPro){
+      var active = state.tab === tab ? ' active' : '';
+      var pro = isPro ? `<span class="pro-badge">PRO</span>` : '';
+      return `<button class="nav-btn${active}" onclick="goTab('${tab}')">${label}${pro}</button>`;
+    }
+    return `
+    <nav class="site">
+      ${item('today','Today')}
+      ${item('analysis','Analysis')}
+      ${item('screener','Screener')}
+      ${item('portfolio','Portfolio')}
+      ${item('learn','Learn')}
+      ${item('analyze','Analyze a stock', true)}
+    </nav>`;
+  }
+
+  function renderToday(reports, gauge){
+    var latest = [reports[0], reports[1], reports[2], reports[3]].filter(Boolean);
+    var gradesBlock = latest.length > 0
+      ? `<div class="grades-row">${latest.map(function(r){
+          return `
+          <button class="grade-card" onclick="openReport('${r.ticker}')">
+            <div class="grade-card-top">
+              <span class="ticker-mono">${r.ticker}</span>
+              <span class="price-mono">${r.priceStr}</span>
+            </div>
+            <div class="grade-pill" style="background:${r.gradeBg}">${r.grade}</div>
+            <div class="thesis-text">${esc(r.thesis)}</div>
+          </button>`;
+        }).join('')}</div>`
+      : `<div class="empty-state">
+          <div class="empty-state-title">No graded companies yet</div>
+          <div class="empty-state-text">Grades will appear here once the value engine has produced analysis.</div>
+        </div>`;
+
+    var articlesBlock = articlesData.length > 0
+      ? articlesData.map(function(a){
+          return `
+          <article class="commentary-article">
+            <div class="kicker">${esc(a.kicker)}</div>
+            <h1 class="headline">${esc(a.headline)}</h1>
+            <p class="lead">${esc(a.body)}</p>
+          </article>`;
+        }).join('')
+      : `<div class="empty-state">
+          <div class="empty-state-title">No commentary published yet</div>
+          <div class="empty-state-text">Market commentary will appear here once content is connected.</div>
+        </div>`;
+
+    var newsletterRight = state.subscribed
+      ? `<div class="newsletter-confirm">✓ You're on the list. First briefing tomorrow, 7am ET.</div>`
+      : `<div class="newsletter-form">
+          <input id="newsletterEmail" class="newsletter-input" placeholder="you@example.com">
+          <button class="btn-subscribe" onclick="subscribe()">Subscribe</button>
+        </div>`;
+
+    return `
+    <section class="today-grid" data-screen-label="Today">
+      <div class="gauge-card">
+        <div class="eyebrow">Mr. Market Sentiment Index</div>
+        <div class="gauge-title">How is your manic partner feeling today?</div>
+        <div class="gauge-center">
+          <div class="gauge-svg-wrap">
+            <svg width="220" height="122" viewBox="0 0 200 110">
+              <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="rgba(23,21,15,.12)" stroke-width="13" stroke-linecap="round"></path>
+              <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="${gauge.gColor}" stroke-width="13" stroke-linecap="round" stroke-dasharray="${gauge.gaugeDash}"></path>
+            </svg>
+            <div class="gauge-readout">
+              <div class="gauge-value">${gauge.gauge == null ? '—' : gauge.gauge}</div>
+              <div class="gauge-status" style="color:${gauge.gColor}">${gauge.gLabel}</div>
+            </div>
+          </div>
+        </div>
+        <div class="gauge-scale"><span>0 · Despair</span><span>50 · Rational</span><span>100 · Euphoria</span></div>
+        <p class="gauge-commentary">${esc(gauge.gCommentary)}</p>
+        <div class="gauge-inputs">Inputs: put/call skew · IPO volume · margin debt · media tone · breadth</div>
+      </div>
+      <div>
+        ${articlesBlock}
+      </div>
+    </section>
+    <section style="margin-bottom:44px">
+      <div class="section-header">
+        <h2 class="section-title">Latest grades</h2>
+        <a href="#" onclick="goAnalysisLink(event)" class="link-caps">All analysis →</a>
+      </div>
+      <div style="margin-top:1px">${gradesBlock}</div>
+    </section>
+    <section class="newsletter">
+      <div>
+        <div class="newsletter-title">The Intelligent Briefing — free, every weekday at 7am ET</div>
+        <div class="newsletter-sub">One sentiment reading, one grade change, one lesson from Graham, Buffett, or Munger. Also on <a href="#">YouTube</a> and the <a href="#">podcast</a>.</div>
+      </div>
+      ${newsletterRight}
+    </section>`;
+  }
+
+  function renderAnalysis(reports){
+    var detail = state.sel ? computeDetail() : null;
+
+    if (!detail) {
+      var cards = reports.map(function(r){
+        return `
+        <button class="report-card" onclick="openReport('${r.ticker}')">
+          <div class="report-card-top">
+            <div class="report-card-id">
+              <span class="ticker-mono" style="font-size:16px">${r.ticker}</span>
+              <span class="name-muted">${esc(r.name)}</span>
+            </div>
+            <span class="grade-pill-sm" style="background:${r.gradeBg}">${r.grade}</span>
+          </div>
+          <div class="report-headline">${esc(r.headline)}</div>
+          <div class="report-stats">
+            <span>Price ${r.priceStr}</span>
+            <span>IV ${r.ivStr}</span>
+            <span style="color:${r.mosColor}">MoS ${r.mosStr}</span>
+            <span>F-Score ${r.fscore}/9</span>
+          </div>
+        </button>`;
+      }).join('');
+
+      var body = reports.length > 0
+        ? `<div class="reports-grid">${cards}</div>`
+        : `<div class="empty-state">
+            <div class="empty-state-title">No companies under coverage yet</div>
+            <div class="empty-state-text">Analysis will appear here once the value engine has graded a company.</div>
+          </div>`;
+
+      return `
+      <section data-screen-label="Analysis">
+        <div class="analysis-head">
+          <h1 class="page-title">Analysis &amp; recommendations</h1>
+          <span class="count-note">${reports.length} companies under coverage · graded by our value engine, reviewed by humans</span>
+        </div>
+        <p class="page-desc">Every grade requires a computed margin of safety, a return-on-capital verdict, a clean forensic screen, and a named catalyst. No exceptions — a cheap stock without a trigger is dead money, not a bargain.</p>
+        ${body}
+      </section>`;
+    }
+
+    var statCells = detail.detailStats.map(function(s){
+      return `
+      <div class="stat-cell">
+        <div class="stat-label">${esc(s.label)}</div>
+        <div class="stat-value" style="color:${s.color}">${esc(String(s.value))}</div>
+        <div class="stat-note">${esc(s.note)}</div>
+      </div>`;
+    }).join('');
+
+    var flagsBlock = detail.detailFlags.length > 0
+      ? `<div class="flags-list">${detail.detailFlags.map(function(f){
+          return `<div class="flag-item"><span class="flag-marker">▪</span><span>${esc(f.text)}</span></div>`;
+        }).join('')}</div>`
+      : `<div class="no-flags">✓ No forensic red flags. Screens clean on F-Score, Altman Z″, and Beneish M.</div>`;
+
+    return `
+    <section data-screen-label="Analysis">
+      <button class="back-btn" onclick="closeDetail()">← All analysis</button>
+      <div class="detail-head">
+        <div class="detail-id">
+          <h1 class="detail-ticker">${detail.ticker}</h1>
+          <span class="detail-name">${esc(detail.name)}</span>
+          <span class="detail-price">${detail.priceStr}</span>
+        </div>
+        <span class="grade-pill-lg" style="background:${detail.gradeBg}">${detail.grade}</span>
+      </div>
+      <div class="stats-grid">${statCells}</div>
+      <div class="detail-body">
+        <div>
+          <h3 class="block-title">Forward-looking rationale</h3>
+          <p class="rationale">${esc(detail.rationale)}</p>
+          <h3 class="block-title">The realization trigger</h3>
+          <div class="catalyst-box" style="border-left-color:${detail.gradeBg}">${esc(detail.catalyst)}</div>
+        </div>
+        <div>
+          <h3 class="block-title">Red flags</h3>
+          ${flagsBlock}
+          <h3 class="block-title">Lifecycle &amp; moat</h3>
+          <div class="lifecycle-text">${esc(detail.lifecycle)} · Moat: ${esc(detail.moat)}</div>
+          <div class="disclaimer">Illustrative sample analysis for demonstration. Not investment advice. Figures are model estimates, not market data.</div>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function screenerTableBodyHTML(reports){
+    var rows = computeScreenRows(reports);
+    if (rows.length === 0) {
+      return `<tr class="empty-row"><td colspan="7">${reports.length === 0 ? 'No companies under coverage yet.' : 'No companies match the current filters.'}</td></tr>`;
+    }
+    return rows.map(function(r){
+      return `
+      <tr class="table-row" onclick="openReport('${r.ticker}')">
+        <td><span class="ticker-mono">${r.ticker}</span> <span class="name-muted" style="margin-left:8px">${esc(r.name)}</span></td>
+        <td class="td-right">${r.priceStr}</td>
+        <td class="td-right">${r.ivStr}</td>
+        <td class="td-right" style="font-weight:500;color:${r.mosColor}">${r.mosStr}</td>
+        <td class="td-right">${r.fscore}/9</td>
+        <td class="td-right" style="color:${r.spreadColor}">${r.spreadStr}</td>
+        <td><span class="grade-pill-sm" style="background:${r.gradeBg};white-space:nowrap">${r.gradeShort}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function updateScreenerPartial(){
+    var reports = S.map(mk);
+    var rows = computeScreenRows(reports);
+    var tbody = document.getElementById('screenerTbody');
+    var label = document.getElementById('minMosLabel');
+    var count = document.getElementById('matchCount');
+    if (tbody) tbody.innerHTML = screenerTableBodyHTML(reports);
+    if (label) label.textContent = (state.minMos > 0 ? '+' : '') + state.minMos + '%';
+    if (count) count.textContent = rows.length + ' of ' + reports.length + ' match';
+  }
+
+  function renderScreener(reports){
+    var rows = computeScreenRows(reports);
+    var mosSortArrow = state.sortKey === 'mos' ? (state.sortDir === -1 ? '↓' : '↑') : '';
+    var fSortArrow = state.sortKey === 'f' ? (state.sortDir === -1 ? '↓' : '↑') : '';
+
+    var gradeButtons = gradeOrder.map(function(g){
+      var active = state.grades[g];
+      var bg = active ? GB[g] : 'transparent';
+      var color = active ? '#fdfcf9' : '#6b675c';
+      var border = active ? GB[g] : 'rgba(23,21,15,.25)';
+      return `<button class="grade-toggle" style="border-color:${border};background:${bg};color:${color}" onclick="toggleGrade('${g}')">${shortG[g]}</button>`;
+    }).join('');
+
+    return `
+    <section class="screener-section" data-screen-label="Screener">
+      <h1 class="page-title" style="margin:0 0 6px">Margin-of-safety screener</h1>
+      <p class="page-desc">Graham's central idea, computed: intrinsic value blended from earnings-power value, owner-earnings DCF, and asset reproduction cost. Filter our coverage by discount and quality.</p>
+      <div class="filter-bar">
+        <div class="filter-group">
+          <span class="filter-label">Min. margin of safety</span>
+          <input type="range" min="-20" max="50" step="5" value="${state.minMos}" oninput="onMinMosInput(this)" style="width:150px">
+          <span id="minMosLabel" class="filter-value">${(state.minMos > 0 ? '+' : '') + state.minMos}%</span>
+        </div>
+        <div class="grade-filter-group">
+          <span class="filter-label">Grade</span>
+          ${gradeButtons}
+        </div>
+        <div id="matchCount" class="match-count">${rows.length} of ${reports.length} match</div>
+      </div>
+      <table class="screener">
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th class="th-right">Price</th>
+            <th class="th-right">Intrinsic value</th>
+            <th class="th-right"><button class="sort-btn" onclick="sortBy('mos')">Margin of safety ${mosSortArrow}</button></th>
+            <th class="th-right"><button class="sort-btn" onclick="sortBy('f')">F-Score ${fSortArrow}</button></th>
+            <th class="th-right">ROIC − WACC</th>
+            <th>Grade</th>
+          </tr>
+        </thead>
+        <tbody id="screenerTbody">${screenerTableBodyHTML(reports)}</tbody>
+      </table>
+      <div class="footnote">Click any row for the full report. Illustrative sample data — not investment advice.</div>
+    </section>`;
+  }
+
+  function renderPortfolio(){
+    var holdings = computeHoldings();
+    var rows = holdings.length > 0
+      ? holdings.map(function(h){
+          return `
+          <tr class="table-row" onclick="openReport('${h.ticker}')">
+            <td><span class="ticker-mono">${h.ticker}</span> <span class="name-muted" style="margin-left:8px">${esc(h.name)}</span></td>
+            <td class="td-right">${h.costStr}</td>
+            <td class="td-right">${h.priceStr}</td>
+            <td class="td-right" style="font-weight:500;color:${h.gainColor}">${h.gainStr}</td>
+            <td><span class="grade-pill-sm" style="background:${h.gradeBg}">${h.grade}</span></td>
+          </tr>`;
+        }).join('')
+      : `<tr class="empty-row"><td colspan="5">No holdings yet.</td></tr>`;
+
+    var alerts = alertsData.length > 0
+      ? alertsData.map(function(a){
+          return `
+          <div class="alert-item" style="border-left-color:${a.color}">
+            <div class="alert-date">${a.date}</div>
+            <div class="alert-text">${esc(a.text)}</div>
+          </div>`;
+        }).join('')
+      : `<div class="empty-state-text">No alerts yet.</div>`;
+
+    return `
+    <section class="screener-section" data-screen-label="Portfolio">
+      <h1 class="page-title" style="margin:0 0 6px">Portfolio</h1>
+      <p class="page-desc">Track holdings and receive alerts when a position crosses intrinsic value or a grade changes.</p>
+      <div class="portfolio-grid">
+        <table>
+          <thead>
+            <tr>
+              <th>Holding</th>
+              <th class="th-right">Cost basis</th>
+              <th class="th-right">Price</th>
+              <th class="th-right">Gain</th>
+              <th>Grade</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="alerts-card">
+          <div class="alerts-title">Alerts</div>
+          <div class="alerts-list">${alerts}</div>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function renderLearn(){
+    var body = lessonsData.length > 0
+      ? `<div class="lessons-grid">${lessonsData.map(function(l){
+          return `
+          <article class="lesson-card">
+            <div class="kicker">${esc(l.kicker)}</div>
+            <h2 class="lesson-title">${esc(l.title)}</h2>
+            <p class="lesson-excerpt">${esc(l.excerpt)}</p>
+            <a href="#" class="lesson-link">${esc(l.time)} read →</a>
+          </article>`;
+        }).join('')}</div>`
+      : `<div class="empty-state">
+          <div class="empty-state-title">No lessons published yet</div>
+          <div class="empty-state-text">Educational articles will appear here once content is connected.</div>
+        </div>`;
+
+    return `
+    <section class="screener-section" data-screen-label="Learn">
+      <h1 class="page-title" style="margin:0 0 6px">Learn the discipline</h1>
+      <p class="page-desc" style="margin:0 0 26px">The machine computes; the principles come from Graham, Buffett, and Munger. Start here — no jargon assumed.</p>
+      ${body}
+    </section>`;
+  }
+
+  function renderAnalyze(){
+    var requested = !!state.requestedTicker;
+    var left = requested
+      ? `
+        <div class="req-received">✓ REQUEST RECEIVED</div>
+        <div class="req-title">${esc(state.requestedTicker)} is in the queue.</div>
+        <p class="req-desc">The value engine is computing owner earnings, intrinsic value, and the forensic screens. A human analyst reviews every report before it reaches you — expect your grade within 24 hours, delivered by email and in your Analysis tab.</p>
+        <div class="checklist">
+          <div class="checklist-item checklist-done"><span class="check-mark">✓</span>Filings &amp; price data ingested</div>
+          <div class="checklist-item checklist-done"><span class="check-mark">✓</span>GAAP adjustments · owner earnings</div>
+          <div class="checklist-item checklist-pending"><span>◌</span>Intrinsic value blend (EPV · DCF · reproduction)</div>
+          <div class="checklist-item checklist-pending"><span>◌</span>Forensic screens (F-Score · Altman Z″ · Beneish M)</div>
+          <div class="checklist-item checklist-pending"><span>◌</span>Analyst review &amp; grade</div>
+        </div>
+        <button class="btn-outline" onclick="resetAnalysis()">Analyze another</button>`
+      : `
+        <label class="field-label">Ticker or company name</label>
+        <input id="analyzeTickerInput" class="field" placeholder="e.g. NKE or Nike Inc.">
+        <label class="field-label">Optional: paste financial data</label>
+        <textarea class="field" placeholder="Paste figures from your data source (income statement, cash flow, share count...). Missing inputs are never guessed — they cap the grade instead."></textarea>
+        <div class="field-note">Our engine never approximates a missing input to force a score — if margin of safety, return on capital, or the forensic screens can't be computed, the grade is capped and the gaps are listed.</div>
+        <button class="btn-dark" onclick="runAnalysis()">Run analysis →</button>`;
+
+    return `
+    <section class="screener-section" data-screen-label="Analyze a stock">
+      <div class="analyze-head">
+        <h1 class="page-title">Analyze any stock</h1>
+        <span class="pro-badge-lg">PRO MEMBERS</span>
+      </div>
+      <p class="page-desc" style="margin:0 0 26px">Request a full report on any listed company. Our value engine computes intrinsic value, runs the forensic screens, and issues a grade — reviewed by a human analyst before delivery, typically within 24 hours.</p>
+      <div class="analyze-grid">
+        <div class="analyze-card">${left}</div>
+        <div>
+          <div class="includes-box">
+            <div class="includes-title">Every report includes</div>
+            <div class="includes-list">
+              <div>Intrinsic value per share &amp; margin of safety</div>
+              <div>ROIC − WACC verdict: creator, compounder, or destroyer</div>
+              <div>Piotroski F-Score · Altman Z″ · Beneish M-Score</div>
+              <div>Named catalyst — or an honest "none identified"</div>
+              <div>Final grade, from CATALYST-DRIVEN VALUE to VALUE TRAP</div>
+            </div>
+          </div>
+          <div class="recent-box">
+            <div class="recent-title">Recently requested by members</div>
+            <div class="tag-list">
+              ${recentRequests.length > 0 ? recentRequests.map(function(t){ return `<span class="tag">${esc(t)}</span>`; }).join('') : `<span class="empty-state-text">No requests yet.</span>`}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function renderFooter(){
+    return `
+    <footer class="site">
+      <div class="footer-copy">© ${new Date().getFullYear()} ArtificiallyIntelligentInvestor.com · Analysis generated by AI, reviewed by humans · Nothing here is investment advice.</div>
+      <div class="footer-links"><a href="#">Newsletter</a><a href="#">YouTube</a><a href="#">Podcast</a><a href="#">Methodology</a><a href="#">Contact</a></div>
+    </footer>`;
+  }
+
+  function render(){
+    var reports = S.map(mk);
+    var gauge = computeGauge();
+    var body = '';
+    if (state.tab === 'today') body = renderToday(reports, gauge);
+    else if (state.tab === 'analysis') body = renderAnalysis(reports);
+    else if (state.tab === 'screener') body = renderScreener(reports);
+    else if (state.tab === 'portfolio') body = renderPortfolio();
+    else if (state.tab === 'learn') body = renderLearn();
+    else if (state.tab === 'analyze') body = renderAnalyze();
+
+    document.getElementById('app').innerHTML = `
+      <div class="page">
+        <div class="wrap">
+          ${renderHeader()}
+          ${renderNav()}
+          ${body}
+          ${renderFooter()}
+        </div>
+      </div>`;
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

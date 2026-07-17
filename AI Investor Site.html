@@ -39,7 +39,6 @@
   nav.site { display:flex; gap:28px; border-bottom:1px solid var(--border); margin-bottom:32px; flex-wrap:wrap; }
   .nav-btn { position:relative; border:none; padding:12px 2px; font-family:var(--sans); font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink); display:flex; align-items:center; gap:7px; }
   .nav-btn.active::after { content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--ink); }
-  .pro-badge { font-size:9px; font-weight:600; letter-spacing:.1em; padding:2px 6px; background:var(--green); color:var(--card); }
 
   /* today: hero */
   .today-grid { display:grid; grid-template-columns:400px 1fr; gap:40px; align-items:start; margin-bottom:44px; }
@@ -178,7 +177,7 @@
 
   /* analyze */
   .analyze-head { display:flex; align-items:baseline; gap:12px; margin-bottom:6px; flex-wrap:wrap; }
-  .pro-badge-lg { font-size:10px; font-weight:600; letter-spacing:.1em; padding:3px 8px; background:var(--green); color:var(--card); }
+  .soon-badge { font-size:10px; font-weight:600; letter-spacing:.1em; padding:3px 8px; border:1px solid var(--border); color:var(--muted); }
   .analyze-grid { display:grid; grid-template-columns:1.3fr 1fr; gap:28px; align-items:start; }
   .analyze-card { background:var(--card); border:1px solid var(--border); padding:26px 28px; }
   label.field-label { display:block; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
@@ -246,10 +245,28 @@
 
   var recentRequests = [];
 
+  // One-time manual snapshot per docs/MR_MARKET_INDEX_SPEC.md — not a live feed.
+  // Raw readings sourced 2026-07-17 (VIX, S&P/GSPC, Shiller CAPE, 10Y yield, S&P
+  // trailing PE, AAII survey); percentiles are approximated against typical
+  // historical ranges since no full 10-year series is wired in yet. Replace this
+  // block wholesale once the live pipeline (FMP + Claude + Supabase) exists.
+  var mrMarketSnapshot = (function(){
+    var components = [
+      { name: 'VIX',                   display: '15.7',  percentile: 33, invert: true,  weight: 0.15 },
+      { name: 'S&P vs 125-day MA',     display: '+0.1%', percentile: 45, invert: false, weight: 0.15 },
+      { name: 'CAPE',                  display: '41.8',  percentile: 96, invert: false, weight: 0.25 },
+      { name: 'Equity risk premium',   display: '−1.5%', percentile: 10, invert: true,  weight: 0.25 },
+      { name: 'AAII bull–bear spread', display: '−0.9%', percentile: 35, invert: false, weight: 0.20 }
+    ];
+    components.forEach(function(c){ c.score = c.invert ? 100 - c.percentile : c.percentile; });
+    var composite = +components.reduce(function(sum, c){ return sum + c.score * c.weight; }, 0).toFixed(1);
+    return { asOfDisplay: 'Jul 17, 2026', components: components, composite: composite };
+  })();
+
   var state = {
     tab: 'today', sel: null, subscribed: false, requestedTicker: null,
     minMos: 0, grades: { 'CATALYST-DRIVEN VALUE': true, 'FAIR VALUE': true, 'DEAD MONEY': true, 'VALUE TRAP': true },
-    sortKey: 'mos', sortDir: -1, mrMarketIndex: null
+    sortKey: 'mos', sortDir: -1, mrMarketIndex: mrMarketSnapshot.composite
   };
 
   function esc(str){
@@ -277,17 +294,24 @@
   function computeGauge(){
     if (state.mrMarketIndex == null) {
       return { gauge: null, gLabel: 'NO DATA', gColor: '#6b675c',
-        gCommentary: `Sentiment index not yet connected to a data source.`, gaugeDash: '0 251.3' };
+        gCommentary: `Sentiment index not yet connected to a data source.`, gaugeDash: '0 251.3', gInputs: '' };
     }
     var gauge = Math.max(0, Math.min(100, state.mrMarketIndex));
-    var gLabel = gauge < 25 ? 'FEARFUL' : gauge < 45 ? 'CAUTIOUS' : gauge < 60 ? 'RATIONAL' : gauge < 80 ? 'EXUBERANT' : 'EUPHORIC';
-    var gColor = gauge < 25 ? '#3d5a72' : gauge < 60 ? '#1f6b47' : gauge < 80 ? '#8a6410' : '#92301f';
-    var gCommentary = gauge >= 60
-      ? `Mr. Market arrived cheerful today, offering to buy your shares at generous prices. Graham would counsel selling him what is dear — and ignoring the rest of his chatter. Exuberance this broad usually precedes thinner returns, not catastrophe.`
-      : gauge >= 45
-      ? `Mr. Market is composed today — prices broadly track value. Rational markets offer fewer gifts; this is a day for research, not action.`
-      : `Mr. Market is despondent, offering to sell you his holdings at a discount. Fear this broad is historically where the best purchases are made — if the forensic screens come back clean.`;
-    return { gauge: gauge, gLabel: gLabel, gColor: gColor, gCommentary: gCommentary, gaugeDash: (gauge / 100 * 251.3).toFixed(1) + ' 251.3' };
+    // Zones per docs/MR_MARKET_INDEX_SPEC.md: Deep Value / Fearful / Neutral / Greedy / Euphoric
+    var gLabel = gauge < 20 ? 'DEEP VALUE' : gauge < 40 ? 'FEARFUL' : gauge < 60 ? 'NEUTRAL' : gauge < 80 ? 'GREEDY' : 'EUPHORIC';
+    var gColor = gauge < 40 ? '#3d5a72' : gauge < 60 ? '#1f6b47' : gauge < 80 ? '#8a6410' : '#92301f';
+    var gCommentary = gauge >= 80
+      ? `Mr. Market is euphoric — maximum caution. Graham would counsel selling him what is dear and ignoring the rest of his chatter.`
+      : gauge >= 60
+      ? `Mr. Market is greedy today, offering to buy your shares at generous prices. Demand a wider margin of safety before acting on his enthusiasm.`
+      : gauge >= 40
+      ? `Mr. Market is composed today — prices broadly track value. Neutral markets offer fewer gifts; this is a day for research, not action.`
+      : gauge >= 20
+      ? `Mr. Market is fearful, offering to sell you his holdings at a discount. Look for opportunities where the forensic screens come back clean.`
+      : `Mr. Market is despondent — extreme fear. Historically where the best purchases are made, if the fundamentals hold up.`;
+    var gInputs = 'Snapshot ' + mrMarketSnapshot.asOfDisplay + ' (one-time, approximated — not a live feed): '
+      + mrMarketSnapshot.components.map(function(c){ return c.name + ' ' + c.display; }).join(' · ');
+    return { gauge: gauge, gLabel: gLabel, gColor: gColor, gCommentary: gCommentary, gaugeDash: (gauge / 100 * 251.3).toFixed(1) + ' 251.3', gInputs: gInputs };
   }
 
   function computeScreenRows(reports){
@@ -371,10 +395,9 @@
   }
 
   function renderNav(){
-    function item(tab, label, isPro){
+    function item(tab, label){
       var active = state.tab === tab ? ' active' : '';
-      var pro = isPro ? `<span class="pro-badge">PRO</span>` : '';
-      return `<button class="nav-btn${active}" onclick="goTab('${tab}')">${label}${pro}</button>`;
+      return `<button class="nav-btn${active}" onclick="goTab('${tab}')">${label}</button>`;
     }
     return `
     <nav class="site">
@@ -383,7 +406,7 @@
       ${item('screener','Screener')}
       ${item('portfolio','Portfolio')}
       ${item('learn','Learn')}
-      ${item('analyze','Analyze a stock', true)}
+      ${item('analyze','Request a stock')}
     </nav>`;
   }
 
@@ -444,9 +467,9 @@
             </div>
           </div>
         </div>
-        <div class="gauge-scale"><span>0 · Despair</span><span>50 · Rational</span><span>100 · Euphoria</span></div>
+        <div class="gauge-scale"><span>0 · Deep Value</span><span>50 · Neutral</span><span>100 · Euphoric</span></div>
         <p class="gauge-commentary">${esc(gauge.gCommentary)}</p>
-        <div class="gauge-inputs">Inputs: put/call skew · IPO volume · margin debt · media tone · breadth</div>
+        <div class="gauge-inputs">${gauge.gInputs ? esc(gauge.gInputs) : 'No component data available yet.'}</div>
       </div>
       <div>
         ${articlesBlock}
@@ -711,36 +734,36 @@
     var left = requested
       ? `
         <div class="req-received">✓ REQUEST RECEIVED</div>
-        <div class="req-title">${esc(state.requestedTicker)} is in the queue.</div>
-        <p class="req-desc">The value engine is computing owner earnings, intrinsic value, and the forensic screens. A human analyst reviews every report before it reaches you — expect your grade within 24 hours, delivered by email and in your Analysis tab.</p>
+        <div class="req-title">${esc(state.requestedTicker)} is on the list.</div>
+        <p class="req-desc">Live analysis isn't switched on yet — we're finishing the value engine that computes owner earnings, intrinsic value, and the forensic screens for every request. You'll be notified as soon as ${esc(state.requestedTicker)}'s report is ready.</p>
         <div class="checklist">
-          <div class="checklist-item checklist-done"><span class="check-mark">✓</span>Filings &amp; price data ingested</div>
-          <div class="checklist-item checklist-done"><span class="check-mark">✓</span>GAAP adjustments · owner earnings</div>
+          <div class="checklist-item checklist-done"><span class="check-mark">✓</span>Request logged</div>
+          <div class="checklist-item checklist-pending"><span>◌</span>Filings &amp; price data ingestion</div>
           <div class="checklist-item checklist-pending"><span>◌</span>Intrinsic value blend (EPV · DCF · reproduction)</div>
           <div class="checklist-item checklist-pending"><span>◌</span>Forensic screens (F-Score · Altman Z″ · Beneish M)</div>
-          <div class="checklist-item checklist-pending"><span>◌</span>Analyst review &amp; grade</div>
+          <div class="checklist-item checklist-pending"><span>◌</span>Grade issued</div>
         </div>
-        <button class="btn-outline" onclick="resetAnalysis()">Analyze another</button>`
+        <button class="btn-outline" onclick="resetAnalysis()">Request another</button>`
       : `
         <label class="field-label">Ticker or company name</label>
         <input id="analyzeTickerInput" class="field" placeholder="e.g. NKE or Nike Inc.">
         <label class="field-label">Optional: paste financial data</label>
         <textarea class="field" placeholder="Paste figures from your data source (income statement, cash flow, share count...). Missing inputs are never guessed — they cap the grade instead."></textarea>
         <div class="field-note">Our engine never approximates a missing input to force a score — if margin of safety, return on capital, or the forensic screens can't be computed, the grade is capped and the gaps are listed.</div>
-        <button class="btn-dark" onclick="runAnalysis()">Run analysis →</button>`;
+        <button class="btn-dark" onclick="runAnalysis()">Submit request →</button>`;
 
     return `
-    <section class="screener-section" data-screen-label="Analyze a stock">
+    <section class="screener-section" data-screen-label="Request a stock">
       <div class="analyze-head">
-        <h1 class="page-title">Analyze any stock</h1>
-        <span class="pro-badge-lg">PRO MEMBERS</span>
+        <h1 class="page-title">Request a stock</h1>
+        <span class="soon-badge">LIVE ANALYSIS COMING SOON</span>
       </div>
-      <p class="page-desc" style="margin:0 0 26px">Request a full report on any listed company. Our value engine computes intrinsic value, runs the forensic screens, and issues a grade — reviewed by a human analyst before delivery, typically within 24 hours.</p>
+      <p class="page-desc" style="margin:0 0 26px">Live analysis is on its way. For now, tell us which company to prioritize and we'll notify you the moment its full report — intrinsic value, forensic screens, and grade — is ready.</p>
       <div class="analyze-grid">
         <div class="analyze-card">${left}</div>
         <div>
           <div class="includes-box">
-            <div class="includes-title">Every report includes</div>
+            <div class="includes-title">Every report will include</div>
             <div class="includes-list">
               <div>Intrinsic value per share &amp; margin of safety</div>
               <div>ROIC − WACC verdict: creator, compounder, or destroyer</div>
@@ -750,7 +773,7 @@
             </div>
           </div>
           <div class="recent-box">
-            <div class="recent-title">Recently requested by members</div>
+            <div class="recent-title">Recently requested</div>
             <div class="tag-list">
               ${recentRequests.length > 0 ? recentRequests.map(function(t){ return `<span class="tag">${esc(t)}</span>`; }).join('') : `<span class="empty-state-text">No requests yet.</span>`}
             </div>

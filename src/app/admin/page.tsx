@@ -43,7 +43,7 @@ type StockRequest = { id: number; ticker: string; requested_at: string };
 export default function AdminPage() {
   const [authChecked, setAuthChecked] = useState(false);
   const [authed, setAuthed] = useState(false);
-  const [tab, setTab] = useState<'report' | 'mrMarket' | 'requests'>('report');
+  const [tab, setTab] = useState<'report' | 'mrMarket' | 'requests' | 'sandbox'>('report');
 
   useEffect(() => {
     let cancelled = false;
@@ -97,11 +97,22 @@ export default function AdminPage() {
           <button className={`nav-btn${tab === 'requests' ? ' active' : ''}`} onClick={() => setTab('requests')}>
             Stock requests
           </button>
+          <button className={`nav-btn${tab === 'sandbox' ? ' active' : ''}`} onClick={() => setTab('sandbox')}>
+            Sandbox
+          </button>
         </nav>
         <Link href="/" className="back-btn">
           ← Back to site
         </Link>
-        {tab === 'report' ? <ReportForm /> : tab === 'mrMarket' ? <MrMarketForm /> : <RequestsPanel />}
+        {tab === 'report' ? (
+          <ReportForm />
+        ) : tab === 'mrMarket' ? (
+          <MrMarketForm />
+        ) : tab === 'requests' ? (
+          <RequestsPanel />
+        ) : (
+          <SandboxForm />
+        )}
       </div>
     </div>
   );
@@ -620,6 +631,152 @@ function RequestsPanel() {
           loaded && <span className="empty-state-text">No requests yet.</span>
         )}
       </div>
+    </section>
+  );
+}
+
+const SANDBOX_FILES = ['ANALYSIS_ENGINE.md', 'MR_MARKET_INDEX_SPEC.md'] as const;
+
+type SandboxResult = {
+  text: string;
+  thinking: string | null;
+  stop_reason: string;
+  usage: unknown;
+};
+
+function SandboxForm() {
+  const [files, setFiles] = useState<string[]>(['ANALYSIS_ENGINE.md']);
+  const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<SandboxResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  function toggleFile(name: string) {
+    setFiles((prev) => (prev.includes(name) ? prev.filter((f) => f !== name) : [...prev, name]));
+  }
+
+  async function handleSubmit() {
+    setError(null);
+    setResult(null);
+
+    if (files.length === 0) {
+      setError('Select at least one .md file to use as the system prompt.');
+      return;
+    }
+    if (!message.trim()) {
+      setError('Enter a prompt or data dump to send.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/admin/sandbox', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files, message }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(errorMessageFrom(data));
+      } else {
+        setResult(data);
+      }
+    } catch {
+      setError('Network error — is the dev server running?');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <section className="analyze-card" style={{ marginTop: 24 }}>
+      <h1 className="page-title" style={{ marginBottom: 6 }}>
+        Sandbox
+      </h1>
+      <p className="page-desc">
+        Send a prompt straight to Claude using one or more of this project&apos;s own .md files as the system prompt — a quick way
+        to test <code>ANALYSIS_ENGINE.md</code> or <code>MR_MARKET_INDEX_SPEC.md</code> against real input before wiring up the
+        production pipeline. Nothing here is saved.
+      </p>
+
+      <label className="field-label">System prompt files</label>
+      <div className="grade-filter-group" style={{ marginBottom: 18 }}>
+        {SANDBOX_FILES.map((name) => {
+          const active = files.includes(name);
+          return (
+            <button
+              key={name}
+              type="button"
+              className="grade-toggle"
+              style={{
+                borderColor: active ? '#1f6b47' : 'rgba(23,21,15,.25)',
+                background: active ? '#1f6b47' : 'transparent',
+                color: active ? '#fdfcf9' : '#6b675c',
+              }}
+              onClick={() => toggleFile(name)}
+            >
+              {name}
+            </button>
+          );
+        })}
+      </div>
+
+      <label className="field-label">Prompt / data dump</label>
+      <textarea
+        className="field"
+        style={{ height: 220, fontFamily: 'var(--mono)', fontSize: 12.5 }}
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="e.g. ticker + financials data dump for ANALYSIS_ENGINE.md, or today's component readings for MR_MARKET_INDEX_SPEC.md"
+      />
+
+      {error && (
+        <div className="flag-item" style={{ margin: '12px 0' }}>
+          ▪ {error}
+        </div>
+      )}
+
+      <button className="btn-dark" onClick={handleSubmit} disabled={submitting}>
+        {submitting ? 'Running…' : 'Send to Claude →'}
+      </button>
+
+      {result && (
+        <div className="recent-box" style={{ marginTop: 24 }}>
+          <div className="recent-title">
+            Response · stop_reason: {result.stop_reason}
+            {result.usage != null ? ` · ${JSON.stringify(result.usage)}` : ''}
+          </div>
+          {result.thinking && (
+            <details style={{ marginBottom: 14 }}>
+              <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--muted)' }}>Thinking (summarized)</summary>
+              <pre
+                style={{
+                  marginTop: 10,
+                  fontSize: 11.5,
+                  lineHeight: 1.5,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  fontFamily: 'var(--mono)',
+                  color: 'var(--muted)',
+                }}
+              >
+                {result.thinking}
+              </pre>
+            </details>
+          )}
+          <pre
+            style={{
+              fontSize: 12,
+              lineHeight: 1.6,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              fontFamily: 'var(--mono)',
+            }}
+          >
+            {result.text}
+          </pre>
+        </div>
+      )}
     </section>
   );
 }

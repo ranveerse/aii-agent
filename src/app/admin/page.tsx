@@ -408,8 +408,8 @@ function MrMarketForm() {
     }
 
     const components = obj.components.map((c) => {
-      const comp = c as { name?: unknown; raw?: unknown; percentile?: unknown };
-      return { name: comp.name, raw: comp.raw, percentile: comp.percentile };
+      const comp = c as { name?: unknown; raw?: unknown };
+      return { name: comp.name, raw: comp.raw };
     });
 
     setSubmitting(true);
@@ -461,9 +461,9 @@ function MrMarketForm() {
       </h1>
       <p className="page-desc">
         Paste JSON with <code>as_of</code> (YYYY-MM-DD) and a <code>components</code> array of the 5 components below — each needs
-        <code> name</code>, <code>raw</code>, and <code>percentile</code> (0–100, computed by you per the spec&apos;s
-        Normalization section). The composite score, zone, and oriented scores are computed server-side from these — you don&apos;t
-        need to include them, and they&apos;re ignored if you do. Submitting again with the same <code>as_of</code> overwrites that
+        just <code>name</code> and <code>raw</code> (the current reading — no history lookup required). The score, orientation,
+        composite, and zone are all computed server-side against the spec&apos;s fixed calibration bounds — you don&apos;t need to
+        include them, and they&apos;re ignored if you do. Submitting again with the same <code>as_of</code> overwrites that
         day&apos;s reading.
       </p>
       <div className="field-note">Exact component names required: {MR_MARKET_COMPONENT_NAMES.join(', ')}</div>
@@ -473,7 +473,7 @@ function MrMarketForm() {
         style={{ height: 280, fontFamily: 'var(--mono)', fontSize: 12.5 }}
         value={json}
         onChange={(e) => setJson(e.target.value)}
-        placeholder='{ "as_of": "2026-07-21", "components": [ { "name": "VIX", "raw": 15.7, "percentile": 33 }, ... ] }'
+        placeholder='{ "as_of": "2026-07-21", "components": [ { "name": "VIX", "raw": 15.7 }, ... ] }'
       />
       {result && (
         <div className={result.ok ? 'no-flags' : 'flag-item'} style={{ margin: '12px 0' }}>

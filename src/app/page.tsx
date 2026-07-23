@@ -1116,7 +1116,7 @@ function MethodologyTab({ goTodayLink }: { goTodayLink: (e: React.MouseEvent) =>
             <td className="td-right">15%</td>
           </tr>
           <tr>
-            <td>CAPE percentile</td>
+            <td>CAPE</td>
             <td>Greed</td>
             <td className="td-right">25%</td>
           </tr>
@@ -1133,9 +1133,10 @@ function MethodologyTab({ goTodayLink }: { goTodayLink: (e: React.MouseEvent) =>
         </tbody>
       </table>
       <p className="excerpt" style={{ marginBottom: 18 }}>
-        Each raw reading is converted to a percentile against its own trailing 10-year history, then oriented so higher always
-        means greedier — the two components that rise with fear (VIX, equity risk premium) are inverted first. The five oriented
-        scores are then combined using the weights above into one composite reading.
+        Each raw reading is scaled against fixed calibration bounds — long-run historical extremes for that component — so only
+        today&apos;s reading is ever needed, no rolling history lookup. The scaled value is then oriented so higher always means
+        greedier — the two components that rise with fear (VIX, equity risk premium) are inverted first. The five oriented scores
+        are then combined using the weights above into one composite reading.
       </p>
       <table style={{ marginBottom: 20 }}>
         <thead>

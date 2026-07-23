@@ -4,7 +4,6 @@ import { MR_MARKET_COMPONENT_NAMES } from '@/lib/mrMarket';
 const componentInputSchema = z.object({
   name: z.enum(MR_MARKET_COMPONENT_NAMES),
   raw: z.number(),
-  percentile: z.number().min(0).max(100),
 });
 
 export const mrMarketCreateSchema = z.object({

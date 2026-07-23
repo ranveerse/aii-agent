@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
   let result;
   try {
-    // The only place the percentile -> orient -> weight -> composite arithmetic runs.
+    // The only place the score -> orient -> weight -> composite arithmetic runs.
     result = computeMrMarketComposite(parsed.data.components);
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Invalid components' }, { status: 400 });

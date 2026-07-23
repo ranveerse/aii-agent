@@ -233,18 +233,21 @@
 
   // One-time manual snapshot per docs/MR_MARKET_INDEX_SPEC.md — not a live feed.
   // Raw readings sourced 2026-07-17 (VIX, S&P/GSPC, Shiller CAPE, 10Y yield, S&P
-  // trailing PE, AAII survey); percentiles are approximated against typical
-  // historical ranges since no full 10-year series is wired in yet. Replace this
-  // block wholesale once the live pipeline (FMP + Claude + Supabase) exists.
+  // trailing PE, AAII survey), scaled against the spec's fixed calibration bounds
+  // (no history series required). Replace this block wholesale once the live
+  // pipeline (FMP + Claude + Supabase) exists.
   var mrMarketSnapshot = (function(){
     var components = [
-      { name: 'VIX',                   display: '15.7',  percentile: 33, invert: true,  weight: 0.15 },
-      { name: 'S&P vs 125-day MA',     display: '+0.1%', percentile: 45, invert: false, weight: 0.15 },
-      { name: 'CAPE',                  display: '41.8',  percentile: 96, invert: false, weight: 0.25 },
-      { name: 'Equity risk premium',   display: '−1.5%', percentile: 10, invert: true,  weight: 0.25 },
-      { name: 'AAII bull–bear spread', display: '−0.9%', percentile: 35, invert: false, weight: 0.20 }
+      { name: 'VIX',                   raw: 15.7,   display: '15.7',  low: 10,    high: 40,   invert: true,  weight: 0.15 },
+      { name: 'S&P vs 125-day MA',     raw: 0.001,  display: '+0.1%', low: -0.20, high: 0.15, invert: false, weight: 0.15 },
+      { name: 'CAPE',                  raw: 41.8,   display: '41.8',  low: 13,    high: 44,   invert: false, weight: 0.25 },
+      { name: 'Equity risk premium',   raw: -0.015, display: '−1.5%', low: -0.02, high: 0.07, invert: true,  weight: 0.25 },
+      { name: 'AAII bull–bear spread', raw: -0.9,   display: '−0.9%', low: -50,   high: 50,   invert: false, weight: 0.20 }
     ];
-    components.forEach(function(c){ c.score = c.invert ? 100 - c.percentile : c.percentile; });
+    components.forEach(function(c){
+      var scaled = Math.min(100, Math.max(0, (c.raw - c.low) / (c.high - c.low) * 100));
+      c.score = c.invert ? 100 - scaled : scaled;
+    });
     var composite = +components.reduce(function(sum, c){ return sum + c.score * c.weight; }, 0).toFixed(1);
     return { asOfDisplay: 'Jul 17, 2026', components: components, composite: composite };
   })();
@@ -707,12 +710,12 @@
         <tbody>
           <tr><td>VIX</td><td>Fear</td><td class="td-right">15%</td></tr>
           <tr><td>S&amp;P 500 vs. 125-day moving average</td><td>Greed</td><td class="td-right">15%</td></tr>
-          <tr><td>CAPE percentile</td><td>Greed</td><td class="td-right">25%</td></tr>
+          <tr><td>CAPE</td><td>Greed</td><td class="td-right">25%</td></tr>
           <tr><td>Equity risk premium</td><td>Fear</td><td class="td-right">25%</td></tr>
           <tr><td>AAII bull–bear spread</td><td>Greed</td><td class="td-right">20%</td></tr>
         </tbody>
       </table>
-      <p class="excerpt" style="margin-bottom:18px">Each raw reading is converted to a percentile against its own trailing 10-year history, then oriented so higher always means greedier — the two components that rise with fear (VIX, equity risk premium) are inverted first. The five oriented scores are then combined using the weights above into one composite reading.</p>
+      <p class="excerpt" style="margin-bottom:18px">Each raw reading is scaled against fixed calibration bounds — long-run historical extremes for that component — so only today's reading is ever needed, no rolling history lookup. The scaled value is then oriented so higher always means greedier — the two components that rise with fear (VIX, equity risk premium) are inverted first. The five oriented scores are then combined using the weights above into one composite reading.</p>
       <table style="margin-bottom:20px">
         <thead><tr><th>Score</th><th>Zone</th><th>Reading</th></tr></thead>
         <tbody>

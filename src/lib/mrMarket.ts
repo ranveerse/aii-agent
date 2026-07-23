@@ -1,9 +1,9 @@
 /**
  * Single home for docs/MR_MARKET_INDEX_SPEC.md's composite-score arithmetic.
- * Nothing outside this file may compute percentile -> orient -> weight -> composite —
+ * Nothing outside this file may compute score -> orient -> weight -> composite —
  * see CLAUDE.md's "Analysis logic has one home each" rule. Callers (the /api/mr-market
- * route) supply raw values + percentiles already computed against the spec's trailing
- * 10-year lookback; this function only does the orientation/weighting/zone step.
+ * route) supply only the current raw value per component; this function scales each
+ * against the spec's fixed calibration bounds, then orients/weights/composites.
  */
 
 export const MR_MARKET_COMPONENT_NAMES = [
@@ -18,9 +18,8 @@ export type MrMarketComponentName = (typeof MR_MARKET_COMPONENT_NAMES)[number];
 
 export type MrMarketComponentInput = {
   name: MrMarketComponentName;
+  /** Current reading only — no history required. */
   raw: number;
-  /** 0-100 percentile against the component's own trailing 10-year history. */
-  percentile: number;
 };
 
 export type MrMarketComponentOutput = MrMarketComponentInput & {
@@ -39,13 +38,23 @@ export type MrMarketResult = {
 };
 
 // Fixed per docs/MR_MARKET_INDEX_SPEC.md. Weights must sum to 1.00.
-const COMPONENT_CONFIG: Record<MrMarketComponentName, { weight: number; risesWithFear: boolean }> = {
-  'VIX': { weight: 0.15, risesWithFear: true },
-  'S&P vs 125-day MA': { weight: 0.15, risesWithFear: false },
-  'CAPE': { weight: 0.25, risesWithFear: false },
-  'Equity Risk Premium': { weight: 0.25, risesWithFear: true },
-  'AAII Bull-Bear Spread': { weight: 0.2, risesWithFear: false },
+// low/high are long-run historical extremes for the raw reading (not direction-adjusted);
+// risesWithFear controls the inversion applied after min-max scaling.
+const COMPONENT_CONFIG: Record<
+  MrMarketComponentName,
+  { weight: number; risesWithFear: boolean; low: number; high: number }
+> = {
+  'VIX': { weight: 0.15, risesWithFear: true, low: 10, high: 40 },
+  'S&P vs 125-day MA': { weight: 0.15, risesWithFear: false, low: -0.2, high: 0.15 },
+  'CAPE': { weight: 0.25, risesWithFear: false, low: 13, high: 44 },
+  'Equity Risk Premium': { weight: 0.25, risesWithFear: true, low: -0.02, high: 0.07 },
+  'AAII Bull-Bear Spread': { weight: 0.2, risesWithFear: false, low: -50, high: 50 },
 };
+
+function scaleToScore(raw: number, low: number, high: number): number {
+  const pct = ((raw - low) / (high - low)) * 100;
+  return Math.min(100, Math.max(0, pct));
+}
 
 const ZONE_READING: Record<MrMarketZone, string> = {
   'Deep Value':
@@ -80,11 +89,9 @@ export function computeMrMarketComposite(inputs: MrMarketComponentInput[]): MrMa
 
     const config = COMPONENT_CONFIG[input.name];
     if (!config) throw new Error(`Unknown component: ${input.name}`);
-    if (input.percentile < 0 || input.percentile > 100) {
-      throw new Error(`${input.name} percentile must be 0-100, got ${input.percentile}`);
-    }
 
-    const oriented_score = config.risesWithFear ? 100 - input.percentile : input.percentile;
+    const score = scaleToScore(input.raw, config.low, config.high);
+    const oriented_score = config.risesWithFear ? 100 - score : score;
     return { ...input, oriented_score, weight: config.weight };
   });
 

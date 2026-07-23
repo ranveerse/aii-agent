@@ -1,7 +1,3 @@
-# Mr. Market Sentiment Index — v1 Spec (Simple)
- 
-A minimal, build-ready spec. Hand this to Claude Code to implement.
- 
 ## Philosophy
  
 A **contrarian** gauge on a **0–100** scale:
@@ -22,21 +18,32 @@ Every component is oriented so **higher = greedier**.
  
 - Component 2: `momentum = (latest_close / MA_125) − 1`
 - Component 4: `ERP = (1 / trailing_PE) − ten_year_yield`
+ 
 ## Normalization
  
-Convert each raw value to a 0–100 percentile against its own history:
+Only the **current** raw value is required — no rolling history lookup. Each raw value is scaled against **fixed calibration bounds** (long-run historical extremes for that component, hardcoded below), with linear min-max scaling clamped to 0–100:
  
 ```
-percentile(x) = (count of past values ≤ x) / (total count) × 100
+score(x) = clamp((x − low) / (high − low) × 100, 0, 100)
 ```
  
-Default lookback: **10 years** (config value).
+`low` and `high` are anchored to the raw value's own historical extremes (not direction-adjusted — direction is handled in Orientation, below).
+ 
+| Component | low anchor | high anchor | Rationale |
+|---|---|---|---|
+| VIX | 10 | 40 | complacent floor → sustained panic-era level (2008, 2020) |
+| Momentum (S&P vs 125-day MA) | -20% | +15% | crash-era drawdown from trend → strong overbought melt-up |
+| CAPE | 13 | 44 | 2009 trough → dot-com-era peak (~Dec 1999) |
+| ERP | -2% | 7% | stocks priciest vs bonds → 2009-era cheapest vs bonds |
+| AAII Bull–Bear spread | -50 | 50 | extreme survey bearishness → extreme survey bullishness |
+ 
+These bounds are a fixed config, reviewed and adjusted only occasionally (e.g. if a new multi-decade extreme is set) — not recomputed per reading.
  
 ## Orientation
  
 ```
-rises with GREED:  score = percentile
-rises with FEAR:   score = 100 − percentile
+rises with GREED:  oriented_score = score
+rises with FEAR:   oriented_score = 100 − score
 ```
  
 **Test before trusting it:** a known panic date must score low, a known euphoria date high. If reversed, a component is oriented wrong.
@@ -74,7 +81,7 @@ composite = Σ (score × weight)
   "zone": "Greedy",
   "reading": "Mr. Market is greedy — demand a wider margin of safety.",
   "components": [
-    { "name": "VIX", "raw": 14.2, "percentile": 22.0, "oriented_score": 78.0, "weight": 0.15 }
+    { "name": "VIX", "raw": 14.2, "oriented_score": 78.0, "weight": 0.15 }
   ]
 }
 ```

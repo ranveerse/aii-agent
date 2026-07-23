@@ -61,7 +61,7 @@ model MrMarketReading {
   zone           String   @db.VarChar(20) // Deep Value | Fearful | Neutral | Greedy | Euphoric
   reading        String   @db.Text
 
-  // The 5-element components array (name, raw, percentile, oriented_score, weight)
+  // The 5-element components array (name, raw, oriented_score, weight)
   // exactly as documented in MR_MARKET_INDEX_SPEC.md's output JSON. Stored as JSON,
   // not a child table, because it's always read/written as one unit per reading.
   components Json

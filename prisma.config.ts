@@ -5,16 +5,15 @@ import { defineConfig } from 'prisma/config';
 loadEnv({ path: '.env' });
 loadEnv({ path: '.env.local', override: true });
 
-const url = `mysql://${encodeURIComponent(process.env.MYSQL_USER ?? '')}:${encodeURIComponent(
-  process.env.MYSQL_PASSWORD ?? '',
-)}@${process.env.MYSQL_HOST}:${process.env.MYSQL_PORT}/${process.env.MYSQL_DATABASE}`;
-
+// Migrations run against Supabase's direct connection (port 5432), not the
+// pgbouncer pooler (port 6543) the app uses at runtime — pgbouncer's transaction
+// mode doesn't support the prepared statements/DDL Prisma migrate needs.
 export default defineConfig({
   schema: 'prisma/schema.prisma',
   migrations: {
     path: 'prisma/migrations',
   },
   datasource: {
-    url,
+    url: process.env.DIRECT_URL,
   },
 });

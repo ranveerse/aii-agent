@@ -7,9 +7,10 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql" // swap to "postgresql" for the later Supabase migration
-  // Connection URL lives in prisma.config.ts (CLI/migrate) and src/lib/prisma.ts
-  // (runtime client via a driver adapter) — Prisma 7 no longer reads `url` here.
+  provider = "postgresql"
+  // Connection URL lives in prisma.config.ts (CLI/migrate, via DIRECT_URL) and
+  // src/lib/prisma.ts (runtime client via a driver adapter, via DATABASE_URL) —
+  // Prisma 7 no longer reads `url` here.
 }
 
 // One row per stock analysis. Mirrors docs/ANALYSIS_ENGINE.md's Phase 3 output

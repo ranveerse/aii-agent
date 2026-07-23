@@ -15,25 +15,33 @@ function foldComponentName(s: string): string {
     .toLowerCase();
 }
 
-// A few longer-form phrasings (e.g. from page.tsx's descriptive "Rises with" table)
-// that don't fold to the same string as the canonical name and need an explicit map.
-const COMPONENT_NAME_ALIASES: Record<string, MrMarketComponentName> = {
-  'erp': 'Equity Risk Premium',
-  's&p 500 vs 125-day ma': 'S&P vs 125-day MA',
-  's&p 500 vs. 125-day ma': 'S&P vs 125-day MA',
-  's&p vs 125-day moving average': 'S&P vs 125-day MA',
-  's&p 500 vs 125-day moving average': 'S&P vs 125-day MA',
-  's&p 500 vs. 125-day moving average': 'S&P vs 125-day MA',
-};
-
 const CANONICAL_BY_FOLDED_NAME: Record<string, MrMarketComponentName> = Object.fromEntries(
   MR_MARKET_COMPONENT_NAMES.map((name) => [foldComponentName(name), name]),
 );
 
+// Fallback for phrasings that don't fold to an exact match (e.g. "S&P 500 vs 125-Day
+// Moving Average", "AAII Sentiment Survey (Bull/Bear Spread)"). Each canonical name has
+// one substring that's unique to it across all five components — checked in order so
+// a name can't be claimed by a shorter, less specific match first.
+const COMPONENT_NAME_KEYWORDS: [substring: string, name: MrMarketComponentName][] = [
+  ['aaii', 'AAII Bull-Bear Spread'],
+  ['vix', 'VIX'],
+  ['cape', 'CAPE'],
+  ['risk premium', 'Equity Risk Premium'],
+  ['erp', 'Equity Risk Premium'],
+  ['125', 'S&P vs 125-day MA'],
+  ['moving average', 'S&P vs 125-day MA'],
+  ['momentum', 'S&P vs 125-day MA'],
+];
+
 function resolveComponentName(input: unknown): unknown {
   if (typeof input !== 'string') return input;
   const folded = foldComponentName(input);
-  return CANONICAL_BY_FOLDED_NAME[folded] ?? COMPONENT_NAME_ALIASES[folded] ?? input;
+  if (CANONICAL_BY_FOLDED_NAME[folded]) return CANONICAL_BY_FOLDED_NAME[folded];
+  for (const [substring, name] of COMPONENT_NAME_KEYWORDS) {
+    if (folded.includes(substring)) return name;
+  }
+  return input;
 }
 
 const componentInputSchema = z.object({
